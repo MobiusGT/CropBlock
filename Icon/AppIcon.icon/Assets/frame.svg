@@ -1,3 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <rect x="192" y="344" width="640" height="336" rx="56" fill="#FFFFFF"/>
+  <!-- Clean 2.39:1 cinema viewport centered inside the crop brackets -->
+  <rect x="244" y="380" width="536" height="264" rx="44" fill="#FFFFFF"/>
 </svg>

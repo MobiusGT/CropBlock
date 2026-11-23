@@ -194,7 +194,7 @@ Depends: S-001
 Acceptance:
 - [snap] `tools/make_icon.sh` writes `Resources/Assets.car` and `Resources/AppIcon.icns` with zero errors; `tools/icon_review.sh` contact sheet shows a clear custom-drawn glyph (zero SF Symbols) across Default, Dark, Tinted, Clear, 32 px, and 16 px.
 - [manual] `./build.sh --open` displays the crisp icon in the Dock and Finder.
-Status: todo
+Status: done
 
 ### S-013 Universal Binary & GitHub Releases DMG packaging script
 As the maintainer, I run `scripts/release.sh` to build a Universal Binary (`arm64` + `x86_64`) `.app` bundle and distributable `.dmg` with ad-hoc signing by default (no Apple Developer account required), while supporting optional `BUNDLE_HELPERS_DIR`, Developer ID Hardened Runtime signing (`DEVELOPER_ID`), and `notarytool` notarization + stapling (`NOTARY_PROFILE`).

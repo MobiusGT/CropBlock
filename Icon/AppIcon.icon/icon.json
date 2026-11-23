@@ -1,10 +1,11 @@
 {
-  "fill" : { "automatic-gradient" : "srgb:0.25000,0.31000,0.68000,1.00000" },
+  "fill" : { "automatic-gradient" : "srgb:0.23000,0.29000,0.71000,1.00000" },
   "groups" : [
     {
       "layers" : [
-        { "glass" : true, "image-name" : "frame.svg", "name" : "frame" },
-        { "glass" : true, "image-name" : "bars.svg", "name" : "bars", "opacity" : 0.45 }
+        { "glass" : true, "image-name" : "brackets.svg", "name" : "brackets" },
+        { "glass" : true, "image-name" : "frame.svg", "name" : "frame", "opacity" : 0.94 },
+        { "glass" : true, "image-name" : "bars.svg", "name" : "bars", "opacity" : 0.48 }
       ],
       "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
       "translucency" : { "enabled" : true, "value" : 0.5 }

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Bold filled L-shaped crop corner brackets framing the active widescreen aperture -->
+  <!-- Top-left corner -->
+  <path fill="#FFFFFF" d="M 156 436 L 156 340 Q 156 292 204 292 L 300 292 A 28 28 0 0 1 300 348 L 226 348 Q 212 348 212 362 L 212 436 A 28 28 0 0 1 156 436 Z"/>
+  <!-- Top-right corner -->
+  <path fill="#FFFFFF" d="M 724 292 L 820 292 Q 868 292 868 340 L 868 436 A 28 28 0 0 1 812 436 L 812 362 Q 812 348 798 348 L 724 348 A 28 28 0 0 1 724 292 Z"/>
+  <!-- Bottom-left corner -->
+  <path fill="#FFFFFF" d="M 156 588 A 28 28 0 0 1 212 588 L 212 662 Q 212 676 226 676 L 300 676 A 28 28 0 0 1 300 732 L 204 732 Q 156 732 156 684 Z"/>
+  <!-- Bottom-right corner -->
+  <path fill="#FFFFFF" d="M 868 588 L 868 684 Q 868 732 820 732 L 724 732 A 28 28 0 0 1 724 676 L 798 676 Q 812 676 812 662 L 812 588 A 28 28 0 0 1 868 588 Z"/>
+</svg>

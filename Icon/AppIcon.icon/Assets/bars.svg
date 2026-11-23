@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <rect x="240" y="216" width="544" height="84" rx="36" fill="#FFFFFF"/>
-  <rect x="240" y="724" width="544" height="84" rx="36" fill="#FFFFFF"/>
+  <!-- Receding letterbox bars aligned optically with the bracket inner edges -->
+  <rect x="212" y="180" width="600" height="72" rx="32" fill="#FFFFFF"/>
+  <rect x="212" y="772" width="600" height="72" rx="32" fill="#FFFFFF"/>
 </svg>
