@@ -11,7 +11,7 @@ struct PreviewCanvasView: View {
     var compactHeight: Bool = false
 
     private var canvasHeight: CGFloat {
-        compactHeight ? 248 : 304
+        compactHeight ? 232 : 268
     }
 
     var body: some View {

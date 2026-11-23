@@ -217,6 +217,33 @@ final class AppModel {
         updateItem(id: id) { $0.variableARConfirmed = confirmed }
     }
 
+    func setInset(_ edge: CropEdge, value: Int, for id: UUID) {
+        updateItem(id: id) { item in
+            guard let inspection = item.inspection else { return }
+            var next = item.activeInsets
+            switch edge {
+            case .top: next.top = value
+            case .bottom: next.bottom = value
+            case .left: next.left = value
+            case .right: next.right = value
+            }
+            let clamped = CropCalculator.clampManualInsets(
+                next,
+                frameWidth: inspection.storedWidth,
+                frameHeight: inspection.storedHeight
+            )
+            if let detected = item.detection?.proposedInsets, clamped == detected {
+                item.manualInsets = nil
+            } else {
+                item.manualInsets = clamped
+            }
+        }
+    }
+
+    func resetManualInsets(for id: UUID) {
+        updateItem(id: id) { $0.manualInsets = nil }
+    }
+
     // MARK: - Bounded Concurrent Scanning
 
     func scanAllPending() {

@@ -26,6 +26,9 @@ struct DetailWorkspaceView: View {
                     }
 
                     if let inspection = item.inspection, let plan = model.plan(for: item) {
+                        CropOffsetsEditor(item: item, inspection: inspection)
+                            .gridProbe("offsetsEditor", area: "detail")
+
                         HeaderDiffView(
                             inspection: inspection,
                             plan: plan,

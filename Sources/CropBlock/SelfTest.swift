@@ -33,9 +33,19 @@ enum SelfTest {
                 check("SF Symbol '\(name)' exists", NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil)
             }
 
-            // 2. Seed data + Variable AR confirmation guard + Sample switcher + Remove selection advance
+            // 2. Seed data + Variable AR confirmation guard + Sample switcher + Manual offsets + Remove selection advance
             SeedData.populate(into: model)
             check("Seed queue loaded 6 files", model.items.count == 6)
+
+            if let dune = model.items.first(where: { $0.status == .detected }) {
+                let originalTop = dune.activeInsets.top
+                model.setInset(.top, value: originalTop + 2, for: dune.id)
+                let adjusted = model.items.first { $0.id == dune.id }
+                check("Manual top +2 adjusts active inset", adjusted?.activeInsets.top == originalTop + 2 && adjusted?.isManuallyAdjusted == true)
+                model.resetManualInsets(for: dune.id)
+                let reset = model.items.first { $0.id == dune.id }
+                check("Reset restores detected offsets", reset?.activeInsets.top == originalTop && reset?.isManuallyAdjusted == false)
+            }
 
             if let imax = model.items.first(where: { $0.status == .variableAR }) {
                 check("Variable AR item blocks Apply until confirmed", !imax.canApply)

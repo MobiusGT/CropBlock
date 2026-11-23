@@ -144,10 +144,16 @@ As the user, I adjust Top, Bottom, Left, and Right crop offsets in 2 px steps (o
 Screens: `detected-light.png`, `detected-dark.png`
 Depends: S-006, S-007, S-008
 Acceptance:
-- [unit] Clamping logic enforces even integers `>= 0`, prevents `left + right >= W` or `top + bottom >= H`, and recalculates SAR-adjusted display dimensions live.
+- [unit] Clamping logic enforces even integers `>= 0`, prevents `left + right >= W` or `top + bottom >= H`, and recalculates active display AR live.
 - [snap] Four aligned stepper fields (`Top`, `Bottom`, `Left`, `Right`) sit on the 4 pt grid in the detail inspector with `"Reset"` button when modified; grid checks PASS.
-- [self] Stepping Top by `+2` updates `display-height` and marks the crop as manually adjusted; clicking `"Reset"` restores detected offsets.
-Status: todo
+- [self] Stepping Top by `+2` updates active insets and marks the crop as manually adjusted; clicking `"Reset"` restores detected offsets.
+UX:
+- Flow: Select scanned file -> adjust Top/Bottom/Left/Right via `±2 px` steppers or numeric entry -> preview overlay and Header Diff update live -> click `"Reset"` to revert to detected offsets
+- Surface: Inline compact card above Header Diff in the detail workspace (edits values on screen while watching the preview)
+- States: Default matches detected values; adjusted shows `"Adjusted"` capsule and `"Reset"` button; values clamp cleanly to even integers
+- Words: `"Crop Offsets"`, `"Top"`, `"Bottom"`, `"Left"`, `"Right"`, `"Adjusted"`, `"Reset"`
+- Access: Keyboard Tab & arrow stepping; VoiceOver labels each edge and pixel count
+Status: done
 
 ### S-010 Batch Apply All Ready with progress & Variable AR safety skip
 As the user, I click **Apply All Ready** (`⇧⌘↩`) to losslessly crop every `Detected` (and explicitly confirmed `Variable AR`) file in the Queue in parallel while automatically skipping `No Bars`, `Error`, and unconfirmed `Variable AR` files.
