@@ -1,26 +1,50 @@
 {
-  "fill" : { "automatic-gradient" : "srgb:0.27500,0.72500,0.54500,1.00000" },
-  "fill-specializations" : [
-    {
-      "appearance" : "dark",
-      "value" : { "automatic-gradient" : "srgb:0.10500,0.31000,0.23500,1.00000" }
-    }
-  ],
+  "fill" : { "solid" : "srgb:0.09412,0.10196,0.10980,1.00000" },
   "groups" : [
     {
       "layers" : [
-        { "glass" : true, "image-name" : "chicken.svg", "name" : "chicken" },
-        { "glass" : true, "image-name" : "brackets.svg", "name" : "brackets" }
+        {
+          "glass" : true,
+          "image-name-specializations" : [
+            { "value" : "chicken.svg" },
+            { "appearance" : "dark", "value" : "rooster.svg" },
+            { "appearance" : "tinted", "value" : "chicken-black.svg" }
+          ],
+          "name" : "bird"
+        },
+        {
+          "glass" : true,
+          "image-name-specializations" : [
+            { "value" : "brackets.svg" },
+            { "appearance" : "tinted", "value" : "brackets-tinted.svg" }
+          ],
+          "name" : "brackets"
+        }
       ],
       "shadow" : { "kind" : "neutral", "opacity" : 0.42 },
       "translucency" : { "enabled" : false, "value" : 0.0 }
     },
     {
       "layers" : [
-        { "glass" : false, "image-name" : "bars.svg", "name" : "bars" }
+        {
+          "glass-specializations" : [
+            { "value" : false },
+            { "appearance" : "tinted", "value" : true }
+          ],
+          "image-name-specializations" : [
+            { "value" : "screen-default.svg" },
+            { "appearance" : "dark", "value" : "screen-dark.svg" },
+            { "appearance" : "tinted", "value" : "screen-tinted.svg" }
+          ],
+          "name" : "screen",
+          "opacity-specializations" : [
+            { "value" : 1.0 },
+            { "appearance" : "tinted", "value" : 0.74 }
+          ]
+        }
       ],
       "shadow" : { "kind" : "none", "opacity" : 0.0 },
-      "translucency" : { "enabled" : false, "value" : 0.0 }
+      "translucency" : { "enabled" : true, "value" : 0.5 }
     }
   ],
   "supported-platforms" : { "squares" : [ "macOS" ] }

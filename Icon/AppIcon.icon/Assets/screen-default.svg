@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Vibrant seafoam green interior with soft top-to-bottom natural sheen matching approved Default -->
+    <linearGradient id="seafoam" x1="0" y1="176" x2="0" y2="848" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4AC293"/>
+      <stop offset="100%" stop-color="#3DAE81"/>
+    </linearGradient>
+  </defs>
+  <rect x="60" y="176" width="904" height="672" fill="url(#seafoam)"/>
+</svg>

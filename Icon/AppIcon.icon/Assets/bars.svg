@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Symmetrical top and bottom black letterbox bars (176px each, flush to canvas edges) -->
-  <rect x="0" y="0" width="1024" height="176" fill="#181A1C"/>
-  <rect x="0" y="848" width="1024" height="176" fill="#181A1C"/>
-</svg>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Solid jet-black chicken silhouette for Tinted (and Clear) appearances,
+       popping with maximum contrast over the tint-colored / bright frosted interior. -->
+  <g transform="translate(512 516) scale(1.18) translate(-512 -506)" fill="#060608">
+    <!-- 3-lobe comb -->
+    <circle cx="532" cy="400" r="29"/>
+    <circle cx="576" cy="375" r="34"/>
+    <circle cx="615" cy="393" r="28"/>
+    <path d="M520 416 Q576 382 626 412 L614 442 L532 442 Z"/>
+    <!-- Beak -->
+    <path d="M622 440 L674 465 Q678 467 674 469 L622 492 Z"/>
+    <!-- Chicken body -->
+    <path d="
+      M582 394
+      C616 394 638 418 638 450
+      L638 544
+      C638 616 584 668 516 668
+      C452 668 403 628 389 572
+      C368 552 356 527 353 498
+      C362 503 369 506 376 506
+      C364 479 365 453 374 431
+      C399 453 421 479 443 502
+      L514 502
+      C520 480 524 464 527 448
+      C531 416 552 394 582 394
+      Z"/>
+  </g>
+</svg>

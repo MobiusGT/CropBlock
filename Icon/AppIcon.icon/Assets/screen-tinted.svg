@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Bright luminous surface inside brackets:
+       - In Tinted mode, macOS maps this directly to the vibrant system tint color.
+       - In Clear mode, macOS renders this as bright frosted clear glass, clearly distinct
+         from the darker smoked clear glass outside the brackets. -->
+  <rect x="60" y="176" width="904" height="672" fill="#F2F2F5"/>
+</svg>

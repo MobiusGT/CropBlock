@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Mid-dark glass brackets for Tinted and Clear appearances so all four brackets remain
+       crisp and distinct between the dark outer frame and the bright tinted/frosted interior. -->
+  <g fill="#3E424A">
+    <path d="M60 176 H324 V236 H120 V404 H60 Z"/>
+    <path d="M964 176 H700 V236 H904 V404 H964 Z"/>
+    <path d="M60 848 H324 V788 H120 V620 H60 Z"/>
+    <path d="M964 848 H700 V788 H904 V620 H964 Z"/>
+  </g>
+</svg>

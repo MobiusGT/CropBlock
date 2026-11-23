@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Proud colorful Rooster for Dark Mode:
+       - Tall 4-point crimson comb + prominent hanging red wattle
+       - Bright golden-orange beak
+       - Sunlit golden-amber scalloped neck hackle feathers
+       - Rich russet-copper chest/body & layered mahogany/copper wing
+       - Sweeping iridescent midnight-blue / steel-blue sickle tail plumes -->
+  <g transform="translate(518 524) scale(1.04) translate(-512 -512)">
+
+    <!-- 1. Sweeping Sickle Tail Plumes (iridescent midnight-navy & steel-blue) -->
+    <path fill="#1E3F66" d="
+      M424 548
+      C372 544 328 510 310 462
+      C336 466 356 472 374 484
+      C354 452 350 416 364 382
+      C384 416 410 452 442 486
+      Z"/>
+    <path fill="#2C5E8F" d="
+      M446 522
+      C398 482 356 436 340 374
+      C332 342 342 316 366 300
+      C358 328 366 352 384 374
+      C406 404 434 438 466 486
+      Z"/>
+    <path fill="#3E7DB3" d="
+      M460 504
+      C422 452 396 402 394 350
+      C393 326 404 304 424 292
+      C416 318 422 342 436 368
+      C452 398 468 434 486 484
+      Z"/>
+
+    <!-- 2. Tall 4-Point Crimson Rooster Comb -->
+    <path fill="#E13224" d="
+      M516 408
+      C492 384 494 344 522 334
+      C534 330 544 338 548 348
+      C550 316 576 298 598 308
+      C612 314 618 330 614 348
+      C626 330 650 328 662 344
+      C674 360 666 388 648 400
+      C658 404 662 418 652 430
+      L532 440
+      Z"/>
+
+    <!-- 3. Golden-Amber Beak -->
+    <path fill="#F7B022" d="M642 426 L706 449 Q712 451 706 455 L644 474 Z"/>
+
+    <!-- 4. Main Russet-Copper Body & Proud Arched Chest -->
+    <path fill="#B8431B" d="
+      M592 382
+      C628 382 652 406 654 442
+      C656 472 662 504 664 536
+      C666 620 606 688 518 688
+      C438 688 384 636 378 560
+      C376 534 388 506 414 494
+      L508 494
+      C524 468 532 442 536 418
+      C542 394 562 382 592 382
+      Z"/>
+
+    <!-- 5. Sunlit Golden-Amber Head & Flowing Neck Hackle Mantle -->
+    <path fill="#F0A62C" d="
+      M592 382
+      C628 382 652 406 654 442
+      C655 466 658 492 660 518
+      C642 536 626 536 614 520
+      C604 538 584 542 568 524
+      C554 542 532 540 520 518
+      C508 528 496 522 496 504
+      C516 476 530 446 536 418
+      C542 394 562 382 592 382
+      Z"/>
+
+    <!-- Warm honey highlight on upper crown & neck -->
+    <path fill="#F9C14B" d="
+      M590 390
+      C618 390 638 408 642 436
+      C632 454 612 478 586 492
+      C562 504 542 502 532 486
+      C538 456 544 432 548 416
+      C554 398 568 390 590 390
+      Z"/>
+
+    <!-- 6. Prominent Hanging Crimson Wattle (in front of lower throat edge, right beneath beak) -->
+    <path fill="#D9261E" d="
+      M650 468
+      C674 474 686 496 676 518
+      C668 534 646 534 638 516
+      C632 502 636 480 644 470
+      Z"/>
+
+    <!-- 7. Layered Folded Wing (deep mahogany & warm saddle-copper) -->
+    <path fill="#842810" d="
+      M428 538
+      C456 520 504 520 544 544
+      C574 562 586 594 566 620
+      C544 648 486 650 444 624
+      C414 606 404 556 428 538
+      Z"/>
+    <path fill="#D97324" d="
+      M442 546
+      C468 532 508 534 538 552
+      C556 564 562 582 548 596
+      C528 616 484 614 454 596
+      C434 584 428 554 442 546
+      Z"/>
+  </g>
+</svg>
