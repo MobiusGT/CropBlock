@@ -57,7 +57,7 @@ Crop Block edits standard Matroska `PixelCropLeft`, `PixelCropRight`, `PixelCrop
 | **mpv** / **IINA** (mpv-based) | Supported |
 | **MPC-BE** | Supported |
 | **Kodi** | Supported |
-| **VLC**, web browsers, many smart TV / streaming clients | Ignored (displays uncropped frame) |
+| **VLC**, web browsers, many smart TV / streaming clients | Improper Playback |
 
 > A future bitstream cropping backend (`h264_metadata` / `hevc_metadata`) is accounted for in the `CropBackend` protocol architecture for players that ignore container crop headers.
 
