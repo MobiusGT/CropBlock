@@ -203,7 +203,7 @@ Depends: S-012
 Acceptance:
 - [unit] `scripts/release.sh` executes cleanly with default ad-hoc signing on this Mac, produces a valid Universal (`arm64` + `x86_64`) `CropBlock.app` verified by `lipo -info` and a mountable `.dmg` verified by `hdiutil verify`.
 - [manual] Optional `DEVELOPER_ID`, `NOTARY_PROFILE`, and `BUNDLE_HELPERS_DIR` branches are documented and shell-checked (`zsh -n`).
-Status: todo
+Status: done
 
 ### S-014 Full light/dark visual polish, accessibility & milestone architecture check-in
 As the user, every screen, sheet, popover, and Settings tab passes `build-and-verify`, `layout-grid`, VoiceOver/keyboard navigation checks, and `improve-architecture` check-in.
