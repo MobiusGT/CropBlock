@@ -1,4 +1,4 @@
-<h1 align="center">Crop Block</h1>
+<h1 align="center">CropBlock</h1>
 
 <p align="center">
   <a href="https://github.com/MobiusGT/CropBlock/releases">
