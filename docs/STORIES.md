@@ -49,7 +49,7 @@ Acceptance:
 - [unit] `CropDetectParserTests` parses real & synthetic `ffmpeg` stderr output including dark fades and missing fields.
 - [unit] `MatroskaHeaderReaderTests` parses EBML track `v1` video headers (both `Tracks` before `Cluster` and `Tracks` at end of file via `SeekHead`) and accurately distinguishes absent vs. zero crop/display fields.
 - [unit] `MKVHeaderCommandTests` verifies exact `mkvpropedit` argv for apply, receipt-based restore (`--set` vs `--delete`), receipt-less reset, and graceful per-file error mapping for read-only / SMB / NFS I/O failures.
-Status: todo
+Status: done
 
 ### S-004 Add MKV files & folders to the Queue via drag-and-drop, File panel, or Dock icon
 As the user, I drop MKV files or folders onto the window (or Dock icon) or press `⌘O` to populate the Queue with deduplicated `.mkv` files and inspect their live status badges.
