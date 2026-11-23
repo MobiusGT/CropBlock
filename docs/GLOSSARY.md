@@ -11,7 +11,7 @@ Every user-facing noun and verb in Crop Block uses one consistent term across me
 | Crop Offsets | The four even-pixel margins removed from the encoded frame (`Left`, `Right`, `Top`, `Bottom`) | margins, padding, bounds, insets |
 | Sample Frame | A still image extracted at one of the sampled timestamps (`20%`, `50%`, `80%`) | thumbnail, snapshot, screenshot |
 | Crop Overlay | The dimmed black-bar mask and crop boundary drawn over the Sample Frame | mask, guide, wireframe, box |
-| Header Diff | The before-and-after table of Matroska `track:v1` properties (`pixel-crop-*`, `display-width`, `display-height`, `display-unit`) | metadata table, diff log, inspector table |
+| Header Diff | The before-and-after table of Matroska `track:v1` `pixel-crop-*` properties (display dimensions remain untouched) | metadata table, diff log, inspector table |
 | Variable AR | Warning state when sampled timestamps disagree significantly on active video width or height (e.g., IMAX scenes) | mixed ratio, aspect mismatch, unstable crop |
 | Receipt | The saved snapshot of a file's original Matroska header fields used for Restore Original | backup, history record, log |
 | Tools | The external CLI binaries required by Crop Block (`ffmpeg`, `ffprobe`, `mkvpropedit`) | dependencies, binaries, helpers, executables |

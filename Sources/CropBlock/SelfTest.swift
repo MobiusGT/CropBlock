@@ -71,7 +71,16 @@ enum SelfTest {
                     "-f", "lavfi", "-i", "color=c=0x2255AA:s=320x120:d=3,pad=320:180:0:30:black",
                     "-c:v", "libx264", "-pix_fmt", "yuv420p", mkv.path,
                 ])
-                if gen?.terminationStatus == 0 {
+                if gen?.terminationStatus == 0, let mkvpropedit = model.tools.mkvpropeditURL {
+                    // Stamp explicit display dimensions so self-test proves Crop Block leaves them untouched
+                    _ = try? await ProcessRunner.run(executable: mkvpropedit, arguments: [
+                        mkv.path, "--edit", "track:v1",
+                        "--set", "display-unit=0",
+                        "--set", "display-width=320",
+                        "--set", "display-height=180",
+                    ])
+                    let beforeHeader = try? MatroskaHeaderReader.readVideoHeader(at: mkv)
+
                     model.items = []
                     model.selectionID = nil
                     model.detectionSettings = DetectionSettings(samplePercentages: [0.5], sampleDurationSeconds: 1, cropDetectLimit: 24)
@@ -92,14 +101,28 @@ enum SelfTest {
                             if model.items.first?.isApplying == false && model.items.first?.status == .cropped { break }
                             try? await Task.sleep(for: .milliseconds(100))
                         }
+                        let afterApply = try? MatroskaHeaderReader.readVideoHeader(at: mkv)
                         check("Apply Crop transitions status to Cropped with receipt", model.items.first?.status == .cropped && model.items.first?.receipt != nil)
+                        check(
+                            "Apply Crop leaves display-width/height/unit untouched",
+                            afterApply?.displayWidth == beforeHeader?.displayWidth
+                                && afterApply?.displayHeight == beforeHeader?.displayHeight
+                                && afterApply?.displayUnit == beforeHeader?.displayUnit
+                        )
 
                         model.restoreOriginal(for: id)
                         for _ in 0..<25 {
                             if model.items.first?.isApplying == false && model.items.first?.status == .detected { break }
                             try? await Task.sleep(for: .milliseconds(100))
                         }
+                        let afterRestore = try? MatroskaHeaderReader.readVideoHeader(at: mkv)
                         check("Restore Original reverts status and clears receipt", model.items.first?.status == .detected && model.items.first?.receipt == nil)
+                        check(
+                            "Restore Original leaves display-width/height/unit untouched",
+                            afterRestore?.displayWidth == beforeHeader?.displayWidth
+                                && afterRestore?.displayHeight == beforeHeader?.displayHeight
+                                && afterRestore?.displayUnit == beforeHeader?.displayUnit
+                        )
                     }
                 }
                 try? FileManager.default.removeItem(at: work)

@@ -1,204 +1,8 @@
 import AppKit
-import Combine
 import Foundation
 import Observation
 import UniformTypeIdentifiers
 import CropBlockKit
-
-enum SettingsTab: String, CaseIterable, Identifiable {
-    case general
-    case appearance
-
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .general: "General"
-        case .appearance: "Appearance"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .general: "gearshape"
-        case .appearance: "paintbrush"
-        }
-    }
-}
-
-enum SnapshotPage: String, CaseIterable {
-    case empty
-    case detected
-    case variableAR = "variable-ar"
-    case cropped
-    case setup
-    case compatibility
-}
-
-enum QueueItemStatus: Hashable {
-    case pending
-    case scanning
-    case detected
-    case noBars
-    case variableAR
-    case cropped
-    case error(String)
-
-    var label: String {
-        switch self {
-        case .pending: "Pending"
-        case .scanning: "Scanning…"
-        case .detected: "Detected"
-        case .noBars: "No Bars"
-        case .variableAR: "Variable AR"
-        case .cropped: "Cropped"
-        case .error: "Error"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .pending: "clock"
-        case .scanning: "hourglass"
-        case .detected: "crop"
-        case .noBars: "checkmark.circle"
-        case .variableAR: "exclamationmark.triangle.fill"
-        case .cropped: "checkmark.seal.fill"
-        case .error: "xmark.octagon.fill"
-        }
-    }
-
-    var errorMessage: String? {
-        if case .error(let msg) = self { return msg }
-        return nil
-    }
-}
-
-struct QueueItem: Identifiable, Hashable {
-    let id: UUID
-    let url: URL
-    let canonicalPath: String
-    var parentContext: String?
-    var status: QueueItemStatus
-    var inspection: VideoInspection?
-    var detection: CropDetectionResult?
-    var manualInsets: CropInsets?
-    var selectedSampleIndex: Int
-    var variableARConfirmed: Bool
-    var receipt: EditReceipt?
-    var isApplying: Bool
-
-    init(
-        id: UUID = UUID(),
-        url: URL,
-        parentContext: String? = nil,
-        status: QueueItemStatus = .pending,
-        inspection: VideoInspection? = nil,
-        detection: CropDetectionResult? = nil,
-        manualInsets: CropInsets? = nil,
-        selectedSampleIndex: Int = 0,
-        variableARConfirmed: Bool = false,
-        receipt: EditReceipt? = nil,
-        isApplying: Bool = false
-    ) {
-        self.id = id
-        self.url = url
-        self.canonicalPath = MKVFileDiscovery.canonicalPath(for: url)
-        self.parentContext = parentContext
-        self.status = status
-        self.inspection = inspection
-        self.detection = detection
-        self.manualInsets = manualInsets
-        self.selectedSampleIndex = selectedSampleIndex
-        self.variableARConfirmed = variableARConfirmed
-        self.receipt = receipt
-        self.isApplying = isApplying
-    }
-
-    var fileName: String { url.lastPathComponent }
-
-    var activeInsets: CropInsets {
-        if let manualInsets { return manualInsets }
-        if let detection { return detection.proposedInsets }
-        return .zero
-    }
-
-    var isManuallyAdjusted: Bool { manualInsets != nil }
-
-    var canApply: Bool {
-        guard !isApplying, let inspection else { return false }
-        switch status {
-        case .pending, .scanning, .error:
-            return false
-        case .noBars:
-            return !activeInsets.isZero
-        case .variableAR:
-            return variableARConfirmed && (!activeInsets.isZero || inspection.currentHeader.hasNonZeroCrop)
-        case .detected, .cropped:
-            return !activeInsets.isZero
-        }
-    }
-
-    var canRestore: Bool {
-        guard !isApplying, let inspection else { return false }
-        return receipt != nil || inspection.currentHeader.hasNonZeroCrop
-    }
-
-    var restoreButtonTitle: String {
-        receipt != nil ? "Restore Original" : "Reset Crop Headers"
-    }
-
-    var resolutionSummary: String {
-        guard let inspection else { return "Waiting to scan" }
-        let stored = inspection.formattedStoredResolution
-        let insets = activeInsets
-        if !insets.isZero {
-            let display = CropCalculator.displayDimensions(
-                storedWidth: inspection.storedWidth,
-                storedHeight: inspection.storedHeight,
-                insets: insets,
-                sar: inspection.sar
-            )
-            return "\(stored) → \(display.formattedDimensions) · \(display.formattedAspectRatio)"
-        }
-        let full = inspection.fullFrameDisplayDimensions
-        return "\(stored) · \(full.formattedAspectRatio)"
-    }
-
-    var currentSample: CropSample? {
-        guard let samples = detection?.samples, !samples.isEmpty else { return nil }
-        let clamped = min(max(0, selectedSampleIndex), samples.count - 1)
-        return samples[clamped]
-    }
-}
-
-/// Bridges `@Observable` queue state into SwiftUI `.commands` so menu items enable/disable reliably.
-@MainActor
-final class MenuState: ObservableObject {
-    static let shared = MenuState()
-
-    @Published var hasSelection = false
-    @Published var hasPending = false
-    @Published var isScanning = false
-    @Published var canApplySelected = false
-    @Published var canRestoreSelected = false
-    @Published var restoreTitle = "Restore Original"
-    @Published var hasCompleted = false
-    @Published var showsCropOverlay = true
-    @Published var sampleCount = 0
-
-    func sync(from model: AppModel) {
-        let sel = model.selectedItem
-        hasSelection = sel != nil
-        hasPending = model.items.contains { $0.status == .pending }
-        isScanning = model.isScanning
-        canApplySelected = sel?.canApply ?? false
-        canRestoreSelected = sel?.canRestore ?? false
-        restoreTitle = sel?.restoreButtonTitle ?? "Restore Original"
-        hasCompleted = model.items.contains { $0.status == .cropped || $0.status == .noBars }
-        showsCropOverlay = model.showsCropOverlay
-        sampleCount = sel?.detection?.samples.count ?? 0
-    }
-}
 
 @Observable
 final class AppModel {
@@ -350,7 +154,6 @@ final class AppModel {
             selectionID = newlyAddedIDs.first
         }
 
-        // Load any existing receipts from disk for newly added files
         let addedSnapshot = items.filter { newlyAddedIDs.contains($0.id) }
         Task {
             for item in addedSnapshot {
@@ -447,7 +250,6 @@ final class AppModel {
             return
         }
 
-        // Cancel any previous batch only if explicitly replaced; otherwise queue smoothly.
         scanTask?.cancel()
         let settings = detectionSettings
         let resolvedTools = tools
@@ -519,7 +321,6 @@ final class AppModel {
             if result.detection.hasVariableAR {
                 newStatus = .variableAR
             } else if result.detection.hasBars {
-                // If already cropped to these exact insets on disk, reflect Cropped status.
                 if result.inspection.currentHeader.effectiveCropInsets == result.detection.proposedInsets {
                     newStatus = .cropped
                 } else {
@@ -552,13 +353,23 @@ final class AppModel {
 
     func applyCrop(for id: UUID) {
         guard let item = items.first(where: { $0.id == id }),
-              item.canApply,
-              let inspection = item.inspection,
-              let plan = plan(for: item) else {
+              item.canApply else {
             return
         }
         guard tools.mkvpropeditURL != nil else {
             showsToolSetupSheet = true
+            return
+        }
+        Task {
+            await performSingleApply(id: id)
+        }
+    }
+
+    func performSingleApply(id: UUID) async {
+        guard let item = items.first(where: { $0.id == id }),
+              item.canApply,
+              let inspection = item.inspection,
+              let plan = plan(for: item) else {
             return
         }
 
@@ -567,29 +378,27 @@ final class AppModel {
         let existingReceipt = item.receipt
         let currentTools = tools
 
-        Task {
-            do {
-                let receipt = try await backend.apply(
-                    plan: plan,
-                    inspection: inspection,
-                    to: targetURL,
-                    tools: currentTools,
-                    existingReceipt: existingReceipt
-                )
-                try await receiptStore.save(receipt)
-                let refreshedHeader = (try? MatroskaHeaderReader.readVideoHeader(at: targetURL)) ?? inspection.currentHeader
+        do {
+            let receipt = try await backend.apply(
+                plan: plan,
+                inspection: inspection,
+                to: targetURL,
+                tools: currentTools,
+                existingReceipt: existingReceipt
+            )
+            try await receiptStore.save(receipt)
+            let refreshedHeader = (try? MatroskaHeaderReader.readVideoHeader(at: targetURL)) ?? inspection.currentHeader
 
-                updateItem(id: id) { item in
-                    item.isApplying = false
-                    item.receipt = receipt
-                    item.inspection?.currentHeader = refreshedHeader
-                    item.status = .cropped
-                }
-            } catch {
-                updateItem(id: id) { item in
-                    item.isApplying = false
-                    item.status = .error(error.localizedDescription)
-                }
+            updateItem(id: id) { item in
+                item.isApplying = false
+                item.receipt = receipt
+                item.inspection?.currentHeader = refreshedHeader
+                item.status = .cropped
+            }
+        } catch {
+            updateItem(id: id) { item in
+                item.isApplying = false
+                item.status = .error(error.localizedDescription)
             }
         }
     }
@@ -652,7 +461,7 @@ final class AppModel {
 
     // MARK: - Helpers
 
-    private func updateItem(id: UUID, _ mutate: (inout QueueItem) -> Void) {
+    func updateItem(id: UUID, _ mutate: (inout QueueItem) -> Void) {
         guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
         mutate(&items[idx])
         syncMenu()
@@ -665,7 +474,7 @@ final class AppModel {
         }
     }
 
-    private func syncMenu() {
+    func syncMenu() {
         MenuState.shared.sync(from: self)
     }
 }

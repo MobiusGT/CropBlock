@@ -6,7 +6,7 @@ import Testing
 @Suite("MKVHeaderCropBackend commands, errors, receipts, and live round-trip")
 struct MKVBackendAndIntegrationTests {
 
-    @Test("Builds exact mkvpropedit apply, receipt restore, and receipt-less reset arguments")
+    @Test("Builds exact mkvpropedit apply, receipt restore, and receipt-less reset arguments touching ONLY pixel-crop-*")
     func mkvpropeditArgumentBuilders() {
         let inspection = VideoInspection(
             url: URL(fileURLWithPath: "/tmp/movie.mkv"),
@@ -16,10 +16,24 @@ struct MKVBackendAndIntegrationTests {
             sar: .square,
             duration: 6000,
             codecName: "h264",
-            currentHeader: MatroskaVideoHeader(pixelWidth: 1920, pixelHeight: 1080, displayWidth: 1920, displayHeight: 1080)
+            currentHeader: MatroskaVideoHeader(
+                pixelWidth: 1920,
+                pixelHeight: 1080,
+                displayWidth: 1920,
+                displayHeight: 1080,
+                displayUnit: 0
+            )
         )
         let backend = MKVHeaderCropBackend()
         let plan = backend.buildPlan(for: inspection, insets: CropInsets(left: 0, right: 0, top: 140, bottom: 140))
+
+        // Plan changes list ONLY the four pixel-crop-* fields
+        #expect(plan.changes.map(\.property) == [
+            "pixel-crop-left",
+            "pixel-crop-right",
+            "pixel-crop-top",
+            "pixel-crop-bottom",
+        ])
 
         let applyArgs = MKVHeaderCropBackend.buildApplyArguments(filePath: "/tmp/movie.mkv", plan: plan)
         #expect(applyArgs == [
@@ -29,33 +43,37 @@ struct MKVBackendAndIntegrationTests {
             "--set", "pixel-crop-right=0",
             "--set", "pixel-crop-top=140",
             "--set", "pixel-crop-bottom=140",
-            "--set", "display-unit=0",
-            "--set", "display-width=1920",
-            "--set", "display-height=800",
         ])
+        #expect(!applyArgs.joined(separator: " ").contains("display-"))
 
-        // Receipt restore: absent elements use --delete, present elements use --set
+        // Receipt restore: absent pixel-crop-* use --delete, present use --set; display-* never touched
+        let restoreHeader = MatroskaVideoHeader(
+            pixelWidth: 1920,
+            pixelHeight: 1080,
+            pixelCropLeft: 0,
+            pixelCropRight: nil,
+            pixelCropTop: 20,
+            pixelCropBottom: nil,
+            displayWidth: 1920,
+            displayHeight: 1080,
+            displayUnit: 0
+        )
         let restoreArgs = MKVHeaderCropBackend.buildRestoreArguments(
             filePath: "/tmp/movie.mkv",
-            originalHeader: inspection.currentHeader
+            originalHeader: restoreHeader
         )
         #expect(restoreArgs == [
             "/tmp/movie.mkv",
             "--edit", "track:v1",
-            "--delete", "pixel-crop-left",
+            "--set", "pixel-crop-left=0",
             "--delete", "pixel-crop-right",
-            "--delete", "pixel-crop-top",
+            "--set", "pixel-crop-top=20",
             "--delete", "pixel-crop-bottom",
-            "--delete", "display-unit",
-            "--set", "display-width=1920",
-            "--set", "display-height=1080",
         ])
+        #expect(!restoreArgs.joined(separator: " ").contains("display-"))
 
-        // Receipt-less reset deletes all pixel-crop-* and restores SAR-adjusted full frame
-        let resetArgs = MKVHeaderCropBackend.buildResetArguments(
-            filePath: "/tmp/movie.mkv",
-            fullDisplay: DisplayDimensions(width: 853, height: 480, unit: 0)
-        )
+        // Receipt-less reset deletes ONLY pixel-crop-* and never touches display-*
+        let resetArgs = MKVHeaderCropBackend.buildResetArguments(filePath: "/tmp/movie.mkv")
         #expect(resetArgs == [
             "/tmp/movie.mkv",
             "--edit", "track:v1",
@@ -63,10 +81,8 @@ struct MKVBackendAndIntegrationTests {
             "--delete", "pixel-crop-right",
             "--delete", "pixel-crop-top",
             "--delete", "pixel-crop-bottom",
-            "--set", "display-unit=0",
-            "--set", "display-width=853",
-            "--set", "display-height=480",
         ])
+        #expect(!resetArgs.joined(separator: " ").contains("display-"))
     }
 
     @Test("Classifies read-only, permission denied, and SMB/NFS network errors cleanly")
@@ -156,18 +172,16 @@ struct MKVBackendAndIntegrationTests {
         }
     }
 
-    @Test("Live end-to-end scan, apply, re-scan (-apply_cropping codec), restore, and read-only guard")
+    @Test("Live end-to-end scan, apply, re-scan, restore preserves DisplayWidth/Height/Unit untouched")
     func liveRoundTripIntegration() async throws {
         let tools = ToolResolver().resolveAll()
-        guard let ffmpeg = tools.ffmpegURL, tools.allAvailable else {
-            // Gracefully skip on machines without ffmpeg/mkvpropedit installed.
+        guard let ffmpeg = tools.ffmpegURL, let mkvpropedit = tools.mkvpropeditURL, tools.allAvailable else {
             return
         }
 
         let workDir = FileManager.default.temporaryDirectory.appending(path: "cb-live-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: workDir, withIntermediateDirectories: true)
         defer {
-            // Ensure write permission restored before cleanup
             try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: workDir.appending(path: "sample.mkv").path)
             try? FileManager.default.removeItem(at: workDir)
         }
@@ -175,7 +189,7 @@ struct MKVBackendAndIntegrationTests {
         let mkvURL = workDir.appending(path: "sample.mkv")
         let previewDir = workDir.appending(path: "previews")
 
-        // 1. Synthesize a 3-second 320x180 H.264 MKV with 30px top & 30px bottom black bars.
+        // 1. Synthesize a 3-second 320x180 H.264 MKV with 30px top & bottom black bars
         let gen = try await ProcessRunner.run(executable: ffmpeg, arguments: [
             "-hide_banner", "-loglevel", "error", "-y",
             "-f", "lavfi", "-i", "color=c=0x3366CC:s=320x120:d=3,pad=320:180:0:30:black",
@@ -184,7 +198,21 @@ struct MKVBackendAndIntegrationTests {
         ])
         #expect(gen.terminationStatus == 0)
 
-        // 2. Scan with VideoScanner -> verify 320x180 & T=30, B=30 + preview image.
+        // Stamp explicit pre-existing display dimensions to verify Crop Block leaves them completely untouched
+        let stamp = try await ProcessRunner.run(executable: mkvpropedit, arguments: [
+            mkvURL.path, "--edit", "track:v1",
+            "--set", "display-unit=0",
+            "--set", "display-width=320",
+            "--set", "display-height=180",
+        ])
+        #expect(stamp.terminationStatus == 0)
+
+        let originalHeader = try MatroskaHeaderReader.readVideoHeader(at: mkvURL)
+        #expect(originalHeader.displayWidth == 320)
+        #expect(originalHeader.displayHeight == 180)
+        #expect(originalHeader.displayUnit == 0)
+
+        // 2. Scan with VideoScanner -> verify 320x180 & T=30, B=30 + preview image
         let scan1 = try await VideoScanner.scan(
             url: mkvURL,
             settings: DetectionSettings(samplePercentages: [0.25, 0.75], sampleDurationSeconds: 1, cropDetectLimit: 24),
@@ -196,7 +224,7 @@ struct MKVBackendAndIntegrationTests {
         #expect(scan1.detection.proposedInsets == CropInsets(left: 0, right: 0, top: 30, bottom: 30))
         #expect(scan1.detection.samples.first?.previewImagePath != nil)
 
-        // 3. Apply crop losslessly in-place via MKVHeaderCropBackend.
+        // 3. Apply crop losslessly -> pixel-crop-* set, display-* UNTOUCHED
         let backend = MKVHeaderCropBackend()
         let plan = backend.buildPlan(for: scan1.inspection, insets: scan1.detection.proposedInsets)
         let receipt = try await backend.apply(
@@ -207,15 +235,16 @@ struct MKVBackendAndIntegrationTests {
             existingReceipt: nil
         )
 
-        // Verify EBML header on disk matches applied values.
         let afterApply = try MatroskaHeaderReader.readVideoHeader(at: mkvURL)
+        #expect(afterApply.pixelCropLeft == 0)
+        #expect(afterApply.pixelCropRight == 0)
         #expect(afterApply.pixelCropTop == 30)
         #expect(afterApply.pixelCropBottom == 30)
-        #expect(afterApply.displayWidth == 320)
-        #expect(afterApply.displayHeight == 120)
-        #expect(afterApply.displayUnit == 0)
+        #expect(afterApply.displayWidth == originalHeader.displayWidth)
+        #expect(afterApply.displayHeight == originalHeader.displayHeight)
+        #expect(afterApply.displayUnit == originalHeader.displayUnit)
 
-        // 4. Re-scan already-cropped MKV -> `-apply_cropping codec` preserves raw 320x180 and T=30, B=30.
+        // 4. Re-scan already-cropped MKV -> `-apply_cropping codec` still sees 320x180 & T=30, B=30
         let scan2 = try await VideoScanner.scan(
             url: mkvURL,
             settings: DetectionSettings(samplePercentages: [0.5], sampleDurationSeconds: 1, cropDetectLimit: 24),
@@ -226,15 +255,18 @@ struct MKVBackendAndIntegrationTests {
         #expect(scan2.inspection.storedHeight == 180)
         #expect(scan2.detection.proposedInsets == CropInsets(left: 0, right: 0, top: 30, bottom: 30))
 
-        // 5. Restore original via receipt -> crop elements deleted cleanly.
+        // 5. Restore original via receipt -> pixel-crop-* deleted, display-* STILL UNTOUCHED
         try await backend.restore(receipt: receipt, inspection: scan2.inspection, to: mkvURL, tools: tools)
         let afterRestore = try MatroskaHeaderReader.readVideoHeader(at: mkvURL)
         #expect(afterRestore.pixelCropTop == nil)
         #expect(afterRestore.pixelCropBottom == nil)
         #expect(afterRestore.pixelCropLeft == nil)
         #expect(afterRestore.pixelCropRight == nil)
+        #expect(afterRestore.displayWidth == originalHeader.displayWidth)
+        #expect(afterRestore.displayHeight == originalHeader.displayHeight)
+        #expect(afterRestore.displayUnit == originalHeader.displayUnit)
 
-        // 6. Read-only file fails gracefully with .readOnlyOrPermissionDenied.
+        // 6. Read-only file fails gracefully with .readOnlyOrPermissionDenied
         try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: mkvURL.path)
         do {
             _ = try await backend.apply(

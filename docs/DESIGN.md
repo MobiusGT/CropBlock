@@ -195,14 +195,14 @@ Cropping removes pixels without changing individual pixel shape (`SAR = sarNum /
   - **Apply Crop** stays disabled until the user checks `"I've verified the samples — allow crop"`, and **Apply All Ready** (M2) skips unconfirmed Variable AR files automatically.
 
 #### 6. Lossless Header Apply & 1-Click Undo / Restore
-- **Apply**:
-  1. Validate file exists, is writable, and starts with EBML header `0x1A45DFA3`.
-  2. Persist the original `MatroskaVideoHeader` to `~/Library/Application Support/CropBlock/receipts.json` (only overwriting if no un-restored receipt already exists for that file, so re-cropping a file preserves the *true* pre-Crop-Block original!).
-  3. Execute `mkvpropedit <file> --edit track:v1 --set pixel-crop-left=L --set pixel-crop-right=R --set pixel-crop-top=T --set pixel-crop-bottom=B --set display-unit=0 --set display-width=DW --set display-height=DH`.
+- **Apply (pixel-crop-only)**:
+  1. Validate file exists, is writable (`open(O_RDWR)` preflight), and starts with EBML header `0x1A45DFA3`.
+  2. Persist the original `MatroskaVideoHeader` to `~/Library/Application Support/CropBlock/receipts.json` (preserving the true pre-Crop-Block original on repeat edits).
+  3. Execute `mkvpropedit <file> --edit track:v1 --set pixel-crop-left=L --set pixel-crop-right=R --set pixel-crop-top=T --set pixel-crop-bottom=B`. Never modifies `display-width`, `display-height`, or `display-unit`.
   4. Re-read `MatroskaHeaderReader` to verify the written header matches the plan.
 - **Restore Original**:
-  - If an `EditReceipt` exists: restores every original field verbatim (`--set` if originally present, `--delete` if originally absent) and removes the receipt.
-  - If no `EditReceipt` exists (e.g., file was cropped externally) and the MKV currently has non-zero `PixelCrop*`: offers **"Reset Crop Headers"** which runs `--delete pixel-crop-left/right/top/bottom` and resets `display-unit=0`, `display-width`, `display-height` to the full SAR-adjusted encoded dimensions.
+  - If an `EditReceipt` exists: restores only the four `pixel-crop-*` fields verbatim (`--set` if originally present, `--delete` if originally absent) and removes the receipt, leaving `display-width`, `display-height`, and `display-unit` completely untouched.
+  - If no `EditReceipt` exists (e.g., file was cropped externally) and the MKV currently has non-zero `PixelCrop*`: offers **"Reset Crop Headers"** which runs `--delete pixel-crop-left/right/top/bottom` only.
 
 #### 7. Binary Resolution (`ToolResolver`)
 Checks each required binary (`ffmpeg`, `ffprobe`, `mkvpropedit`) cleanly and reports resolved path, origin badge, and version string:

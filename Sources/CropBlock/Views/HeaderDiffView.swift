@@ -1,7 +1,8 @@
 import SwiftUI
 import CropBlockKit
 
-/// Aligned Matroska `track:v1` before-and-after header diff table.
+/// Aligned Matroska `track:v1` before-and-after diff table for `pixel-crop-*` properties.
+/// Display dimensions (`display-width`, `display-height`, `display-unit`) are never modified.
 struct HeaderDiffView: View {
     let inspection: VideoInspection
     let plan: CropApplyPlan
@@ -25,7 +26,7 @@ struct HeaderDiffView: View {
                         .background(Palette.accent.opacity(0.14), in: Capsule())
                 }
 
-                Text("AR \(inspection.fullFrameDisplayDimensions.formattedAspectRatio) → \(plan.displayDimensions.formattedAspectRatio)")
+                Text("Active AR \(inspection.fullFrameDisplayDimensions.formattedAspectRatio) → \(plan.displayDimensions.formattedAspectRatio)")
                     .font(.caption.weight(.medium))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
@@ -72,6 +73,11 @@ struct HeaderDiffView: View {
                 }
             }
             .gridProbe("diffGrid", area: "diffCard")
+
+            Text("Only pixel-crop-* tags are edited; display-width, display-height, and display-unit remain untouched.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .gridProbe("diffNote", area: "diffCard")
         }
         .padding(Space.lg)
         .frame(maxWidth: .infinity, alignment: .leading)

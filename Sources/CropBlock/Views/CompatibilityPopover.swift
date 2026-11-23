@@ -8,7 +8,7 @@ struct CompatibilityPopover: View {
             Label("Player Compatibility", systemImage: "play.rectangle")
                 .font(.headline)
 
-            Text("Crop Block edits Matroska PixelCrop* and display dimension headers losslessly in-place—zero re-encoding, instant, and reversible.")
+            Text("Crop Block edits only the four Matroska PixelCrop* tags losslessly in-place—zero re-encoding, instant, and reversible. Display dimension headers remain untouched.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

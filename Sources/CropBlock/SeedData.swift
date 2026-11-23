@@ -124,7 +124,7 @@ enum SeedData {
             currentHeader: MatroskaVideoHeader(
                 pixelWidth: 1920, pixelHeight: 1080,
                 pixelCropLeft: 0, pixelCropRight: 0, pixelCropTop: 140, pixelCropBottom: 140,
-                displayWidth: 1920, displayHeight: 800, displayUnit: 0
+                displayWidth: 1920, displayHeight: 1080
             )
         )
         let arrivalSamples = [

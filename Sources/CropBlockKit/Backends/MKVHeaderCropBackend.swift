@@ -31,6 +31,8 @@ public enum MKVEditError: Error, LocalizedError, Equatable, Sendable {
 }
 
 /// Lossless in-place Matroska header cropping backend powered by `mkvpropedit --edit track:v1`.
+/// Strictly modifies only the four `pixel-crop-*` properties, leaving `display-width`,
+/// `display-height`, and `display-unit` completely untouched.
 public struct MKVHeaderCropBackend: CropBackend, Sendable {
     public let id: CropBackendID = .mkvHeader
     public let displayName: String = "Matroska Header (mkvpropedit)"
@@ -47,65 +49,43 @@ public struct MKVHeaderCropBackend: CropBackend, Sendable {
             frameWidth: inspection.storedWidth,
             frameHeight: inspection.storedHeight
         )
-        let targetDisplay = CropCalculator.displayDimensions(
+        // Computed purely for preview/aspect-ratio display in the UI; never written to the MKV header.
+        let effectiveDisplay = CropCalculator.displayDimensions(
             storedWidth: inspection.storedWidth,
             storedHeight: inspection.storedHeight,
             insets: clamped,
             sar: inspection.sar
         )
         let current = inspection.currentHeader
-        let fullDisplay = inspection.fullFrameDisplayDimensions
 
-        func fmtOptional(_ value: Int?, fallback: String = "unset") -> String {
+        func fmtOptional(_ value: Int?, fallback: String = "0 (unset)") -> String {
             value.map(String.init) ?? fallback
         }
-
-        let currentDW = current.displayWidth ?? fullDisplay.width
-        let currentDH = current.displayHeight ?? fullDisplay.height
-        let currentUnit = current.displayUnit ?? 0
 
         let changes: [HeaderPropertyChange] = [
             HeaderPropertyChange(
                 property: "pixel-crop-left",
-                before: fmtOptional(current.pixelCropLeft, fallback: "0 (unset)"),
+                before: fmtOptional(current.pixelCropLeft),
                 after: "\(clamped.left)",
                 changed: (current.pixelCropLeft ?? 0) != clamped.left || current.pixelCropLeft == nil
             ),
             HeaderPropertyChange(
                 property: "pixel-crop-right",
-                before: fmtOptional(current.pixelCropRight, fallback: "0 (unset)"),
+                before: fmtOptional(current.pixelCropRight),
                 after: "\(clamped.right)",
                 changed: (current.pixelCropRight ?? 0) != clamped.right || current.pixelCropRight == nil
             ),
             HeaderPropertyChange(
                 property: "pixel-crop-top",
-                before: fmtOptional(current.pixelCropTop, fallback: "0 (unset)"),
+                before: fmtOptional(current.pixelCropTop),
                 after: "\(clamped.top)",
                 changed: (current.pixelCropTop ?? 0) != clamped.top || current.pixelCropTop == nil
             ),
             HeaderPropertyChange(
                 property: "pixel-crop-bottom",
-                before: fmtOptional(current.pixelCropBottom, fallback: "0 (unset)"),
+                before: fmtOptional(current.pixelCropBottom),
                 after: "\(clamped.bottom)",
                 changed: (current.pixelCropBottom ?? 0) != clamped.bottom || current.pixelCropBottom == nil
-            ),
-            HeaderPropertyChange(
-                property: "display-width",
-                before: current.displayWidth.map(String.init) ?? "\(currentDW) (default)",
-                after: "\(targetDisplay.width)",
-                changed: currentDW != targetDisplay.width || current.displayWidth == nil
-            ),
-            HeaderPropertyChange(
-                property: "display-height",
-                before: current.displayHeight.map(String.init) ?? "\(currentDH) (default)",
-                after: "\(targetDisplay.height)",
-                changed: currentDH != targetDisplay.height || current.displayHeight == nil
-            ),
-            HeaderPropertyChange(
-                property: "display-unit",
-                before: current.displayUnit.map { "\($0)" } ?? "0 (default)",
-                after: "\(targetDisplay.unit) (pixels)",
-                changed: currentUnit != targetDisplay.unit || current.displayUnit == nil
             ),
         ]
 
@@ -114,13 +94,13 @@ public struct MKVHeaderCropBackend: CropBackend, Sendable {
             storedWidth: inspection.storedWidth,
             storedHeight: inspection.storedHeight,
             insets: clamped,
-            displayDimensions: targetDisplay,
+            displayDimensions: effectiveDisplay,
             sar: inspection.sar,
             changes: changes
         )
     }
 
-    /// Pure argument builder for `mkvpropedit` apply (directly unit-tested).
+    /// Pure argument builder for `mkvpropedit` apply — touches ONLY `pixel-crop-*`.
     public static func buildApplyArguments(filePath: String, plan: CropApplyPlan) -> [String] {
         [
             filePath,
@@ -129,13 +109,10 @@ public struct MKVHeaderCropBackend: CropBackend, Sendable {
             "--set", "pixel-crop-right=\(plan.insets.right)",
             "--set", "pixel-crop-top=\(plan.insets.top)",
             "--set", "pixel-crop-bottom=\(plan.insets.bottom)",
-            "--set", "display-unit=\(plan.displayDimensions.unit)",
-            "--set", "display-width=\(plan.displayDimensions.width)",
-            "--set", "display-height=\(plan.displayDimensions.height)",
         ]
     }
 
-    /// Pure argument builder for exact restoration from a saved `EditReceipt` (`--set` vs `--delete`).
+    /// Pure argument builder for exact restoration from a saved `EditReceipt` — touches ONLY `pixel-crop-*`.
     public static func buildRestoreArguments(filePath: String, originalHeader: MatroskaVideoHeader) -> [String] {
         var args = [filePath, "--edit", "track:v1"]
 
@@ -151,14 +128,11 @@ public struct MKVHeaderCropBackend: CropBackend, Sendable {
         restoreField("pixel-crop-right", value: originalHeader.pixelCropRight)
         restoreField("pixel-crop-top", value: originalHeader.pixelCropTop)
         restoreField("pixel-crop-bottom", value: originalHeader.pixelCropBottom)
-        restoreField("display-unit", value: originalHeader.displayUnit)
-        restoreField("display-width", value: originalHeader.displayWidth)
-        restoreField("display-height", value: originalHeader.displayHeight)
         return args
     }
 
-    /// Pure argument builder for receipt-less reset (removes all `pixel-crop-*` and resets display size to full SAR frame).
-    public static func buildResetArguments(filePath: String, fullDisplay: DisplayDimensions) -> [String] {
+    /// Pure argument builder for receipt-less reset — deletes ONLY `pixel-crop-*`.
+    public static func buildResetArguments(filePath: String) -> [String] {
         [
             filePath,
             "--edit", "track:v1",
@@ -166,9 +140,6 @@ public struct MKVHeaderCropBackend: CropBackend, Sendable {
             "--delete", "pixel-crop-right",
             "--delete", "pixel-crop-top",
             "--delete", "pixel-crop-bottom",
-            "--set", "display-unit=\(fullDisplay.unit)",
-            "--set", "display-width=\(fullDisplay.width)",
-            "--set", "display-height=\(fullDisplay.height)",
         ]
     }
 
@@ -184,7 +155,7 @@ public struct MKVHeaderCropBackend: CropBackend, Sendable {
         }
         try Self.preflightWriteAccess(to: url)
 
-        // Preserve the true original pre-Crop-Block header if the file was already edited before.
+        // Preserve the true original pre-Crop-Block pixel-crop headers if the file was edited before.
         let originalHeader = existingReceipt?.originalHeader ?? inspection.currentHeader
         let args = Self.buildApplyArguments(filePath: url.path, plan: plan)
         let output = try await ProcessRunner.run(executable: mkvpropedit, arguments: args)
@@ -224,7 +195,7 @@ public struct MKVHeaderCropBackend: CropBackend, Sendable {
         if let receipt {
             args = Self.buildRestoreArguments(filePath: url.path, originalHeader: receipt.originalHeader)
         } else {
-            args = Self.buildResetArguments(filePath: url.path, fullDisplay: inspection.fullFrameDisplayDimensions)
+            args = Self.buildResetArguments(filePath: url.path)
         }
 
         let output = try await ProcessRunner.run(executable: mkvpropedit, arguments: args)
