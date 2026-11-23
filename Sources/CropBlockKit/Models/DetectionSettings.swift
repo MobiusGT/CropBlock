@@ -1,14 +1,14 @@
 import Foundation
 
-/// User-configurable detection and scanning settings.
+/// User-configurable detection and scanning settings with strict clamping and JSON persistence.
 public struct DetectionSettings: Codable, Hashable, Sendable {
-    /// Percentages across video duration to sample (0.01...0.99).
+    /// Three sample percentages across video duration (0.01...0.99).
     public var samplePercentages: [Double]
-    /// Seconds to scan at each sample timestamp.
+    /// Seconds to scan at each sample timestamp (1...60).
     public var sampleDurationSeconds: Double
     /// `cropdetect` black pixel luma threshold (0...255).
     public var cropDetectLimit: Int
-    /// Minimum bar size in pixels before proposing a crop (filters 2 px compression noise).
+    /// Minimum bar size in pixels before proposing a crop (0...32, even).
     public var noiseFloorPixels: Int
     /// Maximum number of concurrent background file scans (1...4).
     public var maxConcurrentScans: Int
@@ -38,8 +38,33 @@ public struct DetectionSettings: Codable, Hashable, Sendable {
         self.samplePercentages = cleaned.isEmpty ? [0.20, 0.50, 0.80] : cleaned
         self.sampleDurationSeconds = min(60, max(1, sampleDurationSeconds))
         self.cropDetectLimit = min(255, max(0, cropDetectLimit))
-        self.noiseFloorPixels = min(32, max(0, noiseFloorPixels))
+        let clampedNoise = min(32, max(0, noiseFloorPixels))
+        self.noiseFloorPixels = clampedNoise - (clampedNoise % 2)
         self.maxConcurrentScans = min(4, max(1, maxConcurrentScans))
         self.autoScanOnAdd = autoScanOnAdd
+    }
+
+    /// Returns a validated copy ensuring every field stays within safe bounds.
+    public func validated() -> DetectionSettings {
+        DetectionSettings(
+            samplePercentages: samplePercentages,
+            sampleDurationSeconds: sampleDurationSeconds,
+            cropDetectLimit: cropDetectLimit,
+            noiseFloorPixels: noiseFloorPixels,
+            maxConcurrentScans: maxConcurrentScans,
+            autoScanOnAdd: autoScanOnAdd
+        )
+    }
+
+    public static func decode(from data: Data?) -> DetectionSettings {
+        guard let data,
+              let decoded = try? JSONDecoder().decode(DetectionSettings.self, from: data) else {
+            return .default
+        }
+        return decoded.validated()
+    }
+
+    public func encode() -> Data? {
+        try? JSONEncoder().encode(validated())
     }
 }

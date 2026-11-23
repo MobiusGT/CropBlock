@@ -3,12 +3,16 @@ import Foundation
 
 enum SettingsTab: String, CaseIterable, Identifiable {
     case general
+    case detection
+    case tools
     case appearance
 
     var id: String { rawValue }
     var title: String {
         switch self {
         case .general: "General"
+        case .detection: "Detection"
+        case .tools: "Tools"
         case .appearance: "Appearance"
         }
     }
@@ -16,6 +20,8 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .general: "gearshape"
+        case .detection: "viewfinder"
+        case .tools: "wrench.and.screwdriver"
         case .appearance: "paintbrush"
         }
     }

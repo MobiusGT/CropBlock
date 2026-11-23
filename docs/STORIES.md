@@ -176,10 +176,16 @@ As the user, I open Settings (`⌘,`) to configure sampling timestamps (default 
 Screens: `settings-general-light.png`, `settings-detection-light.png`, `settings-tools-light.png`, `settings-appearance-light.png` (and dark variants)
 Depends: S-002, S-005
 Acceptance:
-- [unit] Settings persistence round-trips cleanly and validates bounds (percentages 1–99%, duration 1–60 s, limit 0–255, concurrency 1–4).
+- [unit] Settings persistence round-trips cleanly and validates bounds (percentages 1–99%, duration 1–60 s, limit 0–255, noise floor 0–32, concurrency 1–4).
 - [snap] All 4 Settings tabs render as content-fitted grouped Forms (`.fitsContent()`) in light and dark mode with no scroll bars on short content and zero focus rings; grid checks PASS.
-- [self] Changing custom tool path triggers `ToolResolver` re-evaluation; changing accent updates `ThemeStore`.
-Status: todo
+- [self] Changing custom tool path triggers `ToolResolver` re-evaluation; updating detection settings persists and resets cleanly.
+UX:
+- Flow: Press `⌘,` or Crop Block > Settings… -> switch among General, Detection, Tools, Appearance -> changes apply immediately and persist -> `⌘W` closes Settings
+- Surface: Native macOS `Settings` window with 4 tabs, one grouped `Form` per tab (`.fitsContent()`)
+- States: Tools tab shows live Found/Not Found icon + source badge + `Clear` button only when a custom path is set; General tab disables `"Clear Saved Receipts"` when 0 receipts exist
+- Words: Tabs `"General"`, `"Detection"`, `"Tools"`, `"Appearance"`; buttons `"Reset Detection Defaults"`, `"Browse…"`, `"Clear"`, `"Re-check Tools"`, `"Copy Command"`
+- Access: `.noInitialFocus()`, keyboard-navigable steppers and toggles, VoiceOver reads every setting label and value
+Status: done
 
 ### S-012 Liquid Glass App Icon (Icon Composer)
 As the user, Crop Block has a crafted multi-layer Icon Composer icon (`Icon/AppIcon.icon`) that reads clearly in Default, Dark, Tinted, and Clear appearances and at 16 px in Finder and the Dock.

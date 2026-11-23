@@ -14,7 +14,10 @@ final class AppModel {
 
     var tools: ResolvedTools
     var customToolPaths: CustomToolPaths
-    var detectionSettings: DetectionSettings
+    var detectionSettings: DetectionSettings {
+        didSet { persistDetectionSettings() }
+    }
+    var savedReceiptCount = 0
 
     var showsToolSetupSheet = false
     var showsCompatibilityPopover = false
@@ -39,6 +42,7 @@ final class AppModel {
         static let customFFmpeg = "tools.custom.ffmpeg"
         static let customFFprobe = "tools.custom.ffprobe"
         static let customMkvpropedit = "tools.custom.mkvpropedit"
+        static let detectionSettings = "detection.settings.v1"
     }
 
     init(storeDirectory: URL = StoreLocation.directoryURL) {
@@ -51,7 +55,9 @@ final class AppModel {
             mkvpropedit: UserDefaults.standard.string(forKey: DefaultsKey.customMkvpropedit) ?? ""
         )
         self.customToolPaths = savedPaths
-        self.detectionSettings = .default
+        self.detectionSettings = DetectionSettings.decode(
+            from: UserDefaults.standard.data(forKey: DefaultsKey.detectionSettings)
+        )
         self.tools = ToolResolver().resolveAll(customPaths: savedPaths)
         syncMenu()
     }
@@ -100,7 +106,50 @@ final class AppModel {
     func startupCheck() async {
         guard !hasCheckedInitialTools else { return }
         hasCheckedInitialTools = true
+        await refreshReceiptCount()
         await refreshTools(presentSheetIfMissing: !Snapshot.isActive && !SelfTest.requested)
+    }
+
+    func refreshReceiptCount() async {
+        savedReceiptCount = await receiptStore.allReceipts().count
+    }
+
+    func clearAllReceipts() {
+        Task {
+            try? await receiptStore.removeAll()
+            for idx in items.indices {
+                items[idx].receipt = nil
+            }
+            savedReceiptCount = 0
+            syncMenu()
+        }
+    }
+
+    func resetDetectionSettings() {
+        detectionSettings = .default
+    }
+
+    func updateSamplePercentage(at index: Int, percent: Int) {
+        var next = detectionSettings.samplePercentages
+        while next.count <= index {
+            next.append(0.50)
+        }
+        next[index] = min(0.99, max(0.01, Double(percent) / 100.0))
+        detectionSettings = DetectionSettings(
+            samplePercentages: next,
+            sampleDurationSeconds: detectionSettings.sampleDurationSeconds,
+            cropDetectLimit: detectionSettings.cropDetectLimit,
+            noiseFloorPixels: detectionSettings.noiseFloorPixels,
+            maxConcurrentScans: detectionSettings.maxConcurrentScans,
+            autoScanOnAdd: detectionSettings.autoScanOnAdd
+        )
+    }
+
+    private func persistDetectionSettings() {
+        guard !Snapshot.isActive, !SelfTest.requested else { return }
+        if let data = detectionSettings.encode() {
+            UserDefaults.standard.set(data, forKey: DefaultsKey.detectionSettings)
+        }
     }
 
     func refreshTools(presentSheetIfMissing: Bool = false) async {
@@ -511,6 +560,7 @@ final class AppModel {
                 existingReceipt: existingReceipt
             )
             try await receiptStore.save(receipt)
+            await refreshReceiptCount()
             let refreshedHeader = (try? MatroskaHeaderReader.readVideoHeader(at: targetURL)) ?? inspection.currentHeader
 
             updateItem(id: id) { item in
@@ -554,6 +604,7 @@ final class AppModel {
                     tools: currentTools
                 )
                 try await receiptStore.remove(for: targetURL)
+                await refreshReceiptCount()
                 let refreshedHeader = (try? MatroskaHeaderReader.readVideoHeader(at: targetURL)) ?? MatroskaVideoHeader()
 
                 updateItem(id: id) { item in

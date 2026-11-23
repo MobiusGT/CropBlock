@@ -68,7 +68,13 @@ enum SelfTest {
             model.removeSelected()
             check("Remove selected deletes row and advances selection", model.items.count == 5 && model.selectionID == secondID)
 
-            // 4. Menu bar audit (verify required menus and commands exist)
+            // 4. Settings validation & reset check
+            model.updateSamplePercentage(at: 0, percent: 15)
+            check("Detection settings update sample percentage", abs(model.detectionSettings.samplePercentages[0] - 0.15) < 0.001)
+            model.resetDetectionSettings()
+            check("Reset restores default detection settings", model.detectionSettings == .default)
+
+            // 5. Menu bar audit (verify required menus and commands exist)
             let menuTitles = NSApp.mainMenu?.items.map(\.title) ?? []
             check("Main menu has Queue menu", menuTitles.contains("Queue"))
             check("Main menu has Crop menu", menuTitles.contains("Crop"))
