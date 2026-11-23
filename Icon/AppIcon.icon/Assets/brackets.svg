@@ -1,11 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Bold filled L-shaped crop corner brackets framing the active widescreen aperture -->
-  <!-- Top-left corner -->
-  <path fill="#FFFFFF" d="M 156 436 L 156 340 Q 156 292 204 292 L 300 292 A 28 28 0 0 1 300 348 L 226 348 Q 212 348 212 362 L 212 436 A 28 28 0 0 1 156 436 Z"/>
-  <!-- Top-right corner -->
-  <path fill="#FFFFFF" d="M 724 292 L 820 292 Q 868 292 868 340 L 868 436 A 28 28 0 0 1 812 436 L 812 362 Q 812 348 798 348 L 724 348 A 28 28 0 0 1 724 292 Z"/>
-  <!-- Bottom-left corner -->
-  <path fill="#FFFFFF" d="M 156 588 A 28 28 0 0 1 212 588 L 212 662 Q 212 676 226 676 L 300 676 A 28 28 0 0 1 300 732 L 204 732 Q 156 732 156 684 Z"/>
-  <!-- Bottom-right corner -->
-  <path fill="#FFFFFF" d="M 868 588 L 868 684 Q 868 732 820 732 L 724 732 A 28 28 0 0 1 724 676 L 798 676 Q 812 676 812 662 L 812 588 A 28 28 0 0 1 868 588 Z"/>
+  <!-- Four mathematically symmetrical warm wooden-colored crop brackets
+       Outer bounds: x=[60..964] (904px), y=[176..848] (672px), center=(512,512)
+       Arm thickness=60px, horizontal length=264px, vertical length=228px -->
+  <g fill="#A46222">
+    <!-- Top-Left -->
+    <path d="M60 176 H324 V236 H120 V404 H60 Z"/>
+    <!-- Top-Right (exact horizontal mirror: x -> 1024 - x) -->
+    <path d="M964 176 H700 V236 H904 V404 H964 Z"/>
+    <!-- Bottom-Left (exact vertical mirror: y -> 1024 - y) -->
+    <path d="M60 848 H324 V788 H120 V620 H60 Z"/>
+    <!-- Bottom-Right (exact horizontal + vertical mirror) -->
+    <path d="M964 848 H700 V788 H904 V620 H964 Z"/>
+  </g>
 </svg>

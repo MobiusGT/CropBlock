@@ -61,20 +61,20 @@ enum SelfTest {
                 check("Reset restores detected offsets", reset?.activeInsets.top == originalTop && reset?.isManuallyAdjusted == false)
             }
 
-            // Deep Scan All skips already-Deep-Scanned (Lawrence) and already-Cropped (Arrival): 8 - 2 = 6 eligible
+            // Deep Scan All skips already-Deep-Scanned and already-Cropped files: 8 - 2 = 6 eligible
             check("Deep Scan All skips already-Deep-Scanned and Cropped files (6 of 8)", model.deepScanAllCount == 6)
 
-            if let imax = model.items.first(where: { $0.status == .variableAR }) {
-                // Crop All ready: Dune + Blade Runner + Lawrence = 3 (skips unconfirmed Variable AR, Cropped, No Bars, Pending, Error)
+            if let mixed = model.items.first(where: { $0.status == .variableAR }) {
+                // Crop All ready: 3 detected items (skips unconfirmed Variable AR, Cropped, No Bars, Pending, Error)
                 check("Crop All ready skips unconfirmed Variable AR (3 ready)", model.cropAllReadyCount == 3)
-                check("Variable AR item blocks Apply until confirmed", !imax.canApply)
-                model.setVariableARConfirmed(true, for: imax.id)
-                let confirmed = model.items.first { $0.id == imax.id }
+                check("Variable AR item blocks Apply until confirmed", !mixed.canApply)
+                model.setVariableARConfirmed(true, for: mixed.id)
+                let confirmed = model.items.first { $0.id == mixed.id }
                 check("Confirming Variable AR enables Apply", confirmed?.canApply == true)
                 check("Crop All ready includes confirmed Variable AR (now 4 ready)", model.cropAllReadyCount == 4)
 
-                model.selectSample(0, for: imax.id)
-                check("Sample switcher selects index 0", model.items.first { $0.id == imax.id }?.selectedSampleIndex == 0)
+                model.selectSample(0, for: mixed.id)
+                check("Sample switcher selects index 0", model.items.first { $0.id == mixed.id }?.selectedSampleIndex == 0)
             } else {
                 check("Variable AR seed item present", false)
             }

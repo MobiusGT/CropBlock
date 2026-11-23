@@ -1,6 +1,10 @@
 <h1 align="center">Crop Block</h1>
 
 <p align="center">
+  <img src="docs/assets/icon.png" width="128" height="128" alt="Crop Block app icon">
+</p>
+
+<p align="center">
   <a href="https://github.com/MobiusGT/CropBlock/releases">
     <img src="https://img.shields.io/github/v/release/MobiusGT/CropBlock?style=flat-square&color=blue" alt="Version">
   </a>
@@ -23,6 +27,37 @@ A lightweight, native macOS SwiftUI desktop app that automatically detects black
 - **Visual verification, fine-tuning & batch Crop All** — previews SAR-corrected frames with dimmed bars, crisp crop boundaries, live `±2 px` manual offset steppers, a before-and-after Matroska header diff, and 1-click **Crop All** (automatically skipping `No Bars`, `Error`, and unconfirmed `Variable AR` files).
 - **1-Click Undo / Restore** — records original `pixel-crop-*` header states locally (distinguishing absent vs. explicit `0` elements via a pure-Swift EBML `SeekHead` reader) so edits can be reversed cleanly even after restarting.
 - **Native macOS 15+ & macOS 26 Liquid Glass** — built in pure Swift 6 + SwiftUI with Universal Binary (`arm64` + `x86_64`) support.
+
+---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/assets/screenshot-detect.png" alt="Crop Detection and Header Diff" width="100%">
+      <br>
+      <sub><strong>Crop Detection &amp; Header Diff</strong> — Live preview, ±2 px offsets, and <code>pixel-crop-*</code> changes.</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/assets/screenshot-deepscan.png" alt="Deep Scan Results" width="100%">
+      <br>
+      <sub><strong>Deep Scan</strong> — Duration-scaled sampling with a 5-frame timeline switcher.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/assets/screenshot-framing.png" alt="Smart Framing Suggestion" width="100%">
+      <br>
+      <sub><strong>Smart Framing Suggestion</strong> — Flags subtle edge jitter with 1-click Deep Scan.</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/assets/screenshot-variable-ar.png" alt="Variable Aspect Ratio Guard" width="100%">
+      <br>
+      <sub><strong>Variable AR Guard</strong> — Protects mixed-aspect-ratio titles until confirmed.</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 

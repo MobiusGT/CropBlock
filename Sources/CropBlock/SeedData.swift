@@ -14,49 +14,49 @@ enum SeedData {
         let previewDir = URL(fileURLWithPath: "/tmp/CropBlock-seed-previews", isDirectory: true)
         try? FileManager.default.createDirectory(at: previewDir, withIntermediateDirectories: true)
 
-        let dune20 = renderCinemaFrame(
-            to: previewDir.appending(path: "dune-20.png"),
+        let scope20 = renderCinemaFrame(
+            to: previewDir.appending(path: "scope-20.png"),
             width: 960, height: 540, barHeight: 68,
             topColor: (0.85, 0.56, 0.28), bottomColor: (0.28, 0.16, 0.08),
-            accentColor: (0.98, 0.78, 0.45), sceneLabel: "20% · Arrakis Desert"
+            accentColor: (0.98, 0.78, 0.45), sceneLabel: "20% · Golden Horizon"
         )
-        let dune50 = renderCinemaFrame(
-            to: previewDir.appending(path: "dune-50.png"),
+        let scope50 = renderCinemaFrame(
+            to: previewDir.appending(path: "scope-50.png"),
             width: 960, height: 540, barHeight: 68,
             topColor: (0.16, 0.27, 0.46), bottomColor: (0.07, 0.10, 0.18),
-            accentColor: (0.45, 0.72, 0.96), sceneLabel: "50% · Ornithopter Flight"
+            accentColor: (0.45, 0.72, 0.96), sceneLabel: "50% · Twilight Ridge"
         )
-        let dune80 = renderCinemaFrame(
-            to: previewDir.appending(path: "dune-80.png"),
+        let scope80 = renderCinemaFrame(
+            to: previewDir.appending(path: "scope-80.png"),
             width: 960, height: 540, barHeight: 68,
             topColor: (0.64, 0.30, 0.18), bottomColor: (0.14, 0.07, 0.06),
             accentColor: (0.95, 0.54, 0.30), sceneLabel: "80% · Sunset Horizon"
         )
 
-        let imax20 = renderCinemaFrame(
-            to: previewDir.appending(path: "imax-20.png"),
+        let mixed20 = renderCinemaFrame(
+            to: previewDir.appending(path: "mixed-20.png"),
             width: 960, height: 540, barHeight: 68,
             topColor: (0.20, 0.32, 0.42), bottomColor: (0.10, 0.14, 0.19),
             accentColor: (0.68, 0.80, 0.88), sceneLabel: "20% · 2.39:1 Scope"
         )
-        let imax50 = renderCinemaFrame(
-            to: previewDir.appending(path: "imax-50.png"),
+        let mixed50 = renderCinemaFrame(
+            to: previewDir.appending(path: "mixed-50.png"),
             width: 960, height: 540, barHeight: 0,
             topColor: (0.08, 0.12, 0.22), bottomColor: (0.02, 0.04, 0.09),
-            accentColor: (0.98, 0.76, 0.38), sceneLabel: "50% · 1.78:1 IMAX Full Frame"
+            accentColor: (0.98, 0.76, 0.38), sceneLabel: "50% · 1.78:1 Open Matte"
         )
 
-        let arrival50 = renderCinemaFrame(
-            to: previewDir.appending(path: "arrival-50.png"),
+        let cropped50 = renderCinemaFrame(
+            to: previewDir.appending(path: "cropped-50.png"),
             width: 960, height: 540, barHeight: 68,
             topColor: (0.44, 0.50, 0.54), bottomColor: (0.17, 0.22, 0.24),
             accentColor: (0.82, 0.86, 0.88), sceneLabel: "50% · Misty Valley"
         )
 
         // 1. Detected (4K 2.39:1 Letterbox)
-        let duneURL = URL(fileURLWithPath: "/Movies/Sci-Fi/Dune.Part.Two.2024.2160p.Remux.mkv")
-        let duneInspection = VideoInspection(
-            url: duneURL,
+        let featureURL = URL(fileURLWithPath: "/Videos/Cinema/Feature.Film.2160p.Remux.mkv")
+        let featureInspection = VideoInspection(
+            url: featureURL,
             fileSize: 68_420_000_000,
             storedWidth: 3840,
             storedHeight: 2160,
@@ -65,25 +65,25 @@ enum SeedData {
             codecName: "hevc",
             currentHeader: MatroskaVideoHeader(pixelWidth: 3840, pixelHeight: 2160, displayWidth: 3840, displayHeight: 2160)
         )
-        let duneSamples = [
+        let featureSamples = [
             CropSample(window: SampleWindow(index: 0, percentage: 0.20, startTime: 1987, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 276, width: 3840, height: 1608), previewImagePath: dune20),
+                       detectedRect: CropRect(x: 0, y: 276, width: 3840, height: 1608), previewImagePath: scope20),
             CropSample(window: SampleWindow(index: 1, percentage: 0.50, startTime: 4975, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 276, width: 3840, height: 1608), previewImagePath: dune50),
+                       detectedRect: CropRect(x: 0, y: 276, width: 3840, height: 1608), previewImagePath: scope50),
             CropSample(window: SampleWindow(index: 2, percentage: 0.80, startTime: 7963, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 276, width: 3840, height: 1608), previewImagePath: dune80),
+                       detectedRect: CropRect(x: 0, y: 276, width: 3840, height: 1608), previewImagePath: scope80),
         ]
-        let duneDetection = CropCalculator.unionAndAnalyze(samples: duneSamples, frameWidth: 3840, frameHeight: 2160)
-        let duneItem = QueueItem(
-            url: duneURL,
+        let featureDetection = CropCalculator.unionAndAnalyze(samples: featureSamples, frameWidth: 3840, frameHeight: 2160)
+        let featureItem = QueueItem(
+            url: featureURL,
             status: .detected,
-            inspection: duneInspection,
-            detection: duneDetection,
+            inspection: featureInspection,
+            detection: featureDetection,
             selectedSampleIndex: 1
         )
 
         // 2. Film Transfer Jitter (8px edge drift -> suggests Deep Scan without Variable AR block)
-        let filmURL = URL(fileURLWithPath: "/Movies/Classics/Blade.Runner.1982.35mm.1080p.mkv")
+        let filmURL = URL(fileURLWithPath: "/Videos/Archive/Film.Transfer.35mm.1080p.mkv")
         let filmInspection = VideoInspection(
             url: filmURL,
             fileSize: 31_400_000_000,
@@ -96,11 +96,11 @@ enum SeedData {
         )
         let filmSamples = [
             CropSample(window: SampleWindow(index: 0, percentage: 0.20, startTime: 1399, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: dune20),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: scope20),
             CropSample(window: SampleWindow(index: 1, percentage: 0.50, startTime: 3505, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 144, width: 1920, height: 792), previewImagePath: dune50),
+                       detectedRect: CropRect(x: 0, y: 144, width: 1920, height: 792), previewImagePath: scope50),
             CropSample(window: SampleWindow(index: 2, percentage: 0.80, startTime: 5611, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: dune80),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: scope80),
         ]
         let filmDetection = CropCalculator.unionAndAnalyze(
             samples: filmSamples,
@@ -117,7 +117,7 @@ enum SeedData {
         )
 
         // 3. Deep Scanned (90 min -> 15 Deep Scan intervals, 5 representative previews)
-        let deepURL = URL(fileURLWithPath: "/Movies/Classics/Lawrence.1962.Restored.2160p.mkv")
+        let deepURL = URL(fileURLWithPath: "/Videos/Archive/Widescreen.Master.2160p.mkv")
         let deepInspection = VideoInspection(
             url: deepURL,
             fileSize: 54_200_000_000,
@@ -129,7 +129,7 @@ enum SeedData {
             currentHeader: MatroskaVideoHeader(pixelWidth: 3840, pixelHeight: 2160, displayWidth: 3840, displayHeight: 2160)
         )
         let (deepWindows, _) = CropCalculator.deepScanWindows(duration: 5400, settings: .default)
-        let previewPaths = [dune20, dune50, dune80, arrival50, dune20]
+        let previewPaths = [scope20, scope50, scope80, cropped50, scope20]
         var deepSamples = deepWindows.map { win in
             CropSample(window: win, detectedRect: CropRect(x: 0, y: 216, width: 3840, height: 1728))
         }
@@ -151,10 +151,10 @@ enum SeedData {
             selectedSampleIndex: 2
         )
 
-        // 4. Variable AR (IMAX 1.90:1 / 1.78:1 mixed with 2.39:1)
-        let imaxURL = URL(fileURLWithPath: "/Movies/Sci-Fi/Interstellar.2014.IMAX.1080p.mkv")
-        let imaxInspection = VideoInspection(
-            url: imaxURL,
+        // 4. Variable AR (mixed 1.90:1 / 2.39:1 scenes)
+        let mixedURL = URL(fileURLWithPath: "/Videos/Cinema/Mixed.Aspect.Ratio.1080p.mkv")
+        let mixedInspection = VideoInspection(
+            url: mixedURL,
             fileSize: 34_180_000_000,
             storedWidth: 1920,
             storedHeight: 1080,
@@ -163,27 +163,27 @@ enum SeedData {
             codecName: "h264",
             currentHeader: MatroskaVideoHeader(pixelWidth: 1920, pixelHeight: 1080, displayWidth: 1920, displayHeight: 1080)
         )
-        let imaxSamples = [
+        let mixedSamples = [
             CropSample(window: SampleWindow(index: 0, percentage: 0.20, startTime: 2023, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: imax20),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: mixed20),
             CropSample(window: SampleWindow(index: 1, percentage: 0.50, startTime: 5065, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 34, width: 1920, height: 1012), previewImagePath: imax50),
+                       detectedRect: CropRect(x: 0, y: 34, width: 1920, height: 1012), previewImagePath: mixed50),
             CropSample(window: SampleWindow(index: 2, percentage: 0.80, startTime: 8107, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: imax20),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: mixed20),
         ]
-        let imaxDetection = CropCalculator.unionAndAnalyze(samples: imaxSamples, frameWidth: 1920, frameHeight: 1080)
-        let imaxItem = QueueItem(
-            url: imaxURL,
+        let mixedDetection = CropCalculator.unionAndAnalyze(samples: mixedSamples, frameWidth: 1920, frameHeight: 1080)
+        let mixedItem = QueueItem(
+            url: mixedURL,
             status: .variableAR,
-            inspection: imaxInspection,
-            detection: imaxDetection,
+            inspection: mixedInspection,
+            detection: mixedDetection,
             selectedSampleIndex: 1
         )
 
-        // 3. Cropped (with persisted Receipt for 1-click Restore Original)
-        let arrivalURL = URL(fileURLWithPath: "/Movies/Sci-Fi/Arrival.2016.1080p.mkv")
-        let arrivalInspection = VideoInspection(
-            url: arrivalURL,
+        // 5. Cropped (with persisted Receipt for 1-click Restore Original)
+        let croppedURL = URL(fileURLWithPath: "/Videos/Cinema/Anamorphic.Demo.1080p.mkv")
+        let croppedInspection = VideoInspection(
+            url: croppedURL,
             fileSize: 28_900_000_000,
             storedWidth: 1920,
             storedHeight: 1080,
@@ -196,34 +196,34 @@ enum SeedData {
                 displayWidth: 1920, displayHeight: 1080
             )
         )
-        let arrivalSamples = [
+        let croppedSamples = [
             CropSample(window: SampleWindow(index: 0, percentage: 0.20, startTime: 1387, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: arrival50),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: cropped50),
             CropSample(window: SampleWindow(index: 1, percentage: 0.50, startTime: 3475, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: arrival50),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: cropped50),
             CropSample(window: SampleWindow(index: 2, percentage: 0.80, startTime: 5563, duration: 10),
-                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: arrival50),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: cropped50),
         ]
-        let arrivalDetection = CropCalculator.unionAndAnalyze(samples: arrivalSamples, frameWidth: 1920, frameHeight: 1080)
-        let arrivalReceipt = EditReceipt(
-            canonicalPath: arrivalURL.path,
+        let croppedDetection = CropCalculator.unionAndAnalyze(samples: croppedSamples, frameWidth: 1920, frameHeight: 1080)
+        let croppedReceipt = EditReceipt(
+            canonicalPath: croppedURL.path,
             fileSize: 28_900_000_000,
             backendID: .mkvHeader,
             originalHeader: MatroskaVideoHeader(pixelWidth: 1920, pixelHeight: 1080, displayWidth: 1920, displayHeight: 1080),
             appliedInsets: CropInsets(left: 0, right: 0, top: 140, bottom: 140),
             appliedDisplay: DisplayDimensions(width: 1920, height: 800)
         )
-        let arrivalItem = QueueItem(
-            url: arrivalURL,
+        let croppedItem = QueueItem(
+            url: croppedURL,
             status: .cropped,
-            inspection: arrivalInspection,
-            detection: arrivalDetection,
+            inspection: croppedInspection,
+            detection: croppedDetection,
             selectedSampleIndex: 1,
-            receipt: arrivalReceipt
+            receipt: croppedReceipt
         )
 
-        // 4 & 5. Duplicate filename disambiguation (Season 1 = No Bars, Season 2 = Pending)
-        let epS1URL = URL(fileURLWithPath: "/TV/Severance/Season 1/Episode 01.mkv")
+        // 6 & 7. Duplicate filename disambiguation (Season 1 = No Bars, Season 2 = Pending)
+        let epS1URL = URL(fileURLWithPath: "/Videos/Series/Season 1/Episode 01.mkv")
         let epS1Inspection = VideoInspection(
             url: epS1URL,
             fileSize: 4_200_000_000,
@@ -237,7 +237,7 @@ enum SeedData {
         let epS1Detection = CropCalculator.unionAndAnalyze(
             samples: [
                 CropSample(window: SampleWindow(index: 0, percentage: 0.50, startTime: 1705, duration: 10),
-                           detectedRect: CropRect(x: 0, y: 0, width: 1920, height: 1080), previewImagePath: imax50),
+                           detectedRect: CropRect(x: 0, y: 0, width: 1920, height: 1080), previewImagePath: mixed50),
             ],
             frameWidth: 1920,
             frameHeight: 1080
@@ -250,22 +250,22 @@ enum SeedData {
             detection: epS1Detection
         )
 
-        let epS2URL = URL(fileURLWithPath: "/TV/Severance/Season 2/Episode 01.mkv")
+        let epS2URL = URL(fileURLWithPath: "/Videos/Series/Season 2/Episode 01.mkv")
         let epS2Item = QueueItem(
             url: epS2URL,
             parentContext: "Season 2",
             status: .pending
         )
 
-        // 6. Error (Read-only / SMB share)
-        let nasURL = URL(fileURLWithPath: "/Volumes/MediaNAS/Classic.DVD.NTSC.mkv")
+        // 8. Error (Read-only / network share)
+        let nasURL = URL(fileURLWithPath: "/Volumes/MediaShare/ReadOnly.Archive.mkv")
         let nasItem = QueueItem(
             url: nasURL,
-            status: .error(MKVEditError.readOnlyOrPermissionDenied("Classic.DVD.NTSC.mkv").localizedDescription)
+            status: .error(MKVEditError.readOnlyOrPermissionDenied("ReadOnly.Archive.mkv").localizedDescription)
         )
 
-        model.items = [duneItem, filmItem, deepItem, imaxItem, arrivalItem, epS1Item, epS2Item, nasItem]
-        model.selectionID = duneItem.id
+        model.items = [featureItem, filmItem, deepItem, mixedItem, croppedItem, epS1Item, epS2Item, nasItem]
+        model.selectionID = featureItem.id
     }
 
     static func mockPartiallyMissingTools() -> ResolvedTools {
