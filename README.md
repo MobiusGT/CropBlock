@@ -1,4 +1,18 @@
-# <p align="center"> Crop Block
+<h1 align="center">Crop Block</h1>
+
+<p align="center">
+  <a href="https://github.com/MobiusGT/CropBlock/releases">
+    <img src="https://img.shields.io/github/v/release/MobiusGT/CropBlock?style=flat-square&color=blue" alt="Version">
+  </a>
+  <a href="https://github.com/MobiusGT/CropBlock/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-GPLv3-blue?style=flat-square" alt="License">
+  </a>
+  <img src="https://img.shields.io/badge/platform-macOS%2015%2B%20(Universal)-lightgrey?style=flat-square" alt="Platform">
+</p>
+
+<p align="center">
+  <em>Fully made using <strong>Gemini 4 Neon Extra High</strong>.</em>
+</p>
 
 A lightweight, native macOS SwiftUI desktop app that automatically detects black letterbox and pillarbox bars in MKV files using `ffmpeg` (`cropdetect`) and removes them losslessly in-place by editing Matroska `pixel-crop-*` headers with `mkvpropedit`.
 
