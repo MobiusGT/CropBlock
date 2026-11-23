@@ -1,4 +1,4 @@
-<h1 align="center">Crop Block</h1>
+<h1 align="center">CropBlock</h1>
 
 <p align="center">
   <img src="docs/assets/icon.png" width="128" height="128" alt="Crop Block app icon">
@@ -14,9 +14,7 @@
   <img src="https://img.shields.io/badge/platform-macOS%2015%2B%20(Universal)-lightgrey?style=flat-square" alt="Platform">
 </p>
 
-<p align="center">
-  <em>Fully made using <strong>Gemini 4 Neon Extra High</strong>.</em>
-</p>
+---
 
 A lightweight, native macOS SwiftUI desktop app that automatically detects black letterbox and pillarbox bars in MKV files using `ffmpeg` (`cropdetect`) and removes them losslessly in-place by editing Matroska `pixel-crop-*` headers with `mkvpropedit`.
 
@@ -144,6 +142,11 @@ Optional release flags:
 - **`Sources/CropBlockKit/`** — Pure-Swift, SwiftUI-free core library (`CropCalculator`, `MatroskaHeaderReader` with `SeekHead` EOF support, `ToolResolver`, `ProcessRunner`, `CropDetectRunner`, `FrameExtractor`, `MKVFileDiscovery`, `CropBackend` + `MKVHeaderCropBackend`, `BatchApplyPlanner`, `ReceiptStore`).
 - **`Sources/CropBlock/`** — Native macOS SwiftUI app (`NavigationSplitView` queue & detail workspace, SAR-corrected preview canvas, manual offset steppers, 4-tab Settings, Tool Setup sheet, Player Compatibility popover).
 - **`Tests/CropBlockKitTests/`** — Swift Testing unit and live `ffmpeg`/`mkvpropedit` round-trip tests.
+
+---
+## AI Disclosure
+
+  <em>Fully made using <strong>Gemini 4 Neon Extra High</strong>.</em>
 
 ---
 
