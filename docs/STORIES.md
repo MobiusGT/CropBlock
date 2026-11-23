@@ -212,7 +212,7 @@ Depends: S-009, S-010, S-011, S-012, S-013
 Acceptance:
 - [snap] Every snapshot page renders cleanly in light & dark mode; `tools/grid-lint.sh`, `tools/check-layout.swift`, and design-system token grep all PASS with 0 violations.
 - [self] Full `swift test` and `tools/selftest.sh` pass with 0 failures.
-Status: todo
+Status: done
 
 ---
 
@@ -224,7 +224,7 @@ Screens: none (architecture & test verification)
 Depends: S-014
 Acceptance:
 - [unit] `CropBackendProtocolTests` exercises `AppModel`/planner against both `MKVHeaderCropBackend` and a stub `BitstreamCropBackend` (`h264`/`hevc` eligibility check + plan generation) without changing UI contracts.
-Status: todo
+Status: done
 
 ---
 
