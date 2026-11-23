@@ -1,4 +1,4 @@
-# Crop Block
+# <p align="center"> Crop Block
 
 A lightweight, native macOS SwiftUI desktop app that automatically detects black letterbox and pillarbox bars in MKV files using `ffmpeg` (`cropdetect`) and removes them losslessly in-place by editing Matroska `pixel-crop-*` headers with `mkvpropedit`.
 
