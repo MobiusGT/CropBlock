@@ -18,15 +18,91 @@ enum SelfTest {
         }
         Task {
             try? await Task.sleep(for: .seconds(0.4))
-            check("Bundle identifier configured", AppMetadata.bundleIdentifier == "io.github.mobiusgt.cropblock")
 
+            // 1. Metadata & SF Symbols audit
+            check("Bundle identifier matches io.github.mobiusgt.cropblock", AppMetadata.bundleIdentifier == "io.github.mobiusgt.cropblock")
             let symbols = [
-                "crop", "plus", "info.circle", "film.stack", "clock",
-                "checkmark.circle", "exclamationmark.triangle.fill",
-                "checkmark.seal.fill", "xmark.octagon.fill", "gearshape", "paintbrush",
+                "crop", "plus", "info.circle", "film.stack", "clock", "hourglass",
+                "checkmark.circle", "checkmark.circle.fill", "exclamationmark.triangle.fill",
+                "checkmark.seal.fill", "xmark.octagon.fill", "xmark.circle.fill",
+                "gearshape", "paintbrush", "viewfinder", "stop.fill", "arrow.uturn.backward",
+                "folder", "minus.circle", "eye", "eye.slash", "aspectratio", "arrow.right",
+                "wrench.and.screwdriver", "arrow.clockwise", "doc.on.doc", "play.rectangle",
             ]
             for name in symbols {
                 check("SF Symbol '\(name)' exists", NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil)
+            }
+
+            // 2. Seed data + Variable AR confirmation guard + Sample switcher + Remove selection advance
+            SeedData.populate(into: model)
+            check("Seed queue loaded 6 files", model.items.count == 6)
+
+            if let imax = model.items.first(where: { $0.status == .variableAR }) {
+                check("Variable AR item blocks Apply until confirmed", !imax.canApply)
+                model.setVariableARConfirmed(true, for: imax.id)
+                let confirmed = model.items.first { $0.id == imax.id }
+                check("Confirming Variable AR enables Apply", confirmed?.canApply == true)
+
+                model.selectSample(0, for: imax.id)
+                check("Sample switcher selects index 0", model.items.first { $0.id == imax.id }?.selectedSampleIndex == 0)
+            } else {
+                check("Variable AR seed item present", false)
+            }
+
+            // 3. Remove selected advances selection to next row
+            let firstID = model.items[0].id
+            let secondID = model.items[1].id
+            model.selectionID = firstID
+            model.removeSelected()
+            check("Remove selected deletes row and advances selection", model.items.count == 5 && model.selectionID == secondID)
+
+            // 4. Menu bar audit (verify required menus and commands exist)
+            let menuTitles = NSApp.mainMenu?.items.map(\.title) ?? []
+            check("Main menu has Queue menu", menuTitles.contains("Queue"))
+            check("Main menu has Crop menu", menuTitles.contains("Crop"))
+
+            // 5. Live end-to-end AppModel scan -> apply -> restore on real temp MKV (when tools installed)
+            if let ffmpeg = model.tools.ffmpegURL, model.tools.allAvailable {
+                let work = FileManager.default.temporaryDirectory.appending(path: "cb-selftest-\(UUID().uuidString)")
+                try? FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+                let mkv = work.appending(path: "test_letterbox.mkv")
+                let gen = try? await ProcessRunner.run(executable: ffmpeg, arguments: [
+                    "-hide_banner", "-loglevel", "error", "-y",
+                    "-f", "lavfi", "-i", "color=c=0x2255AA:s=320x120:d=3,pad=320:180:0:30:black",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", mkv.path,
+                ])
+                if gen?.terminationStatus == 0 {
+                    model.items = []
+                    model.selectionID = nil
+                    model.detectionSettings = DetectionSettings(samplePercentages: [0.5], sampleDurationSeconds: 1, cropDetectLimit: 24)
+                    model.addURLs([mkv], autoScan: true)
+
+                    // Wait for background scan to finish (max 10s)
+                    for _ in 0..<50 {
+                        if let item = model.items.first, item.status != .pending && item.status != .scanning { break }
+                        try? await Task.sleep(for: .milliseconds(200))
+                    }
+                    let scanned = model.items.first
+                    check("Background scan detects bars on real MKV", scanned?.status == .detected)
+                    check("Detected insets equal T=30 B=30", scanned?.activeInsets == CropInsets(left: 0, right: 0, top: 30, bottom: 30))
+
+                    if let id = scanned?.id {
+                        model.applyCrop(for: id)
+                        for _ in 0..<25 {
+                            if model.items.first?.isApplying == false && model.items.first?.status == .cropped { break }
+                            try? await Task.sleep(for: .milliseconds(100))
+                        }
+                        check("Apply Crop transitions status to Cropped with receipt", model.items.first?.status == .cropped && model.items.first?.receipt != nil)
+
+                        model.restoreOriginal(for: id)
+                        for _ in 0..<25 {
+                            if model.items.first?.isApplying == false && model.items.first?.status == .detected { break }
+                            try? await Task.sleep(for: .milliseconds(100))
+                        }
+                        check("Restore Original reverts status and clears receipt", model.items.first?.status == .detected && model.items.first?.receipt == nil)
+                    }
+                }
+                try? FileManager.default.removeItem(at: work)
             }
 
             print(failures == 0 ? "SELFTEST PASS \(count) checks" : "SELFTEST FAIL \(failures) of \(count) checks")

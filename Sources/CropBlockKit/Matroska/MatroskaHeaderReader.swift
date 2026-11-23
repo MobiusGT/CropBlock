@@ -356,7 +356,7 @@ public enum MatroskaHeaderReader {
     }
 
     private static func readElementHeader(from handle: FileHandle, limit: UInt64) -> FileElementHeader? {
-        guard let startOffset = try? handle.offset(), startOffset < limit else { return nil }
+        guard let startOffset = try? handle.offset(), startOffset < limit else { return nil } // grid: ok FileHandle.offset()
         let readLen = Int(min(12, limit - startOffset))
         guard readLen >= 2, let chunk = try? handle.read(upToCount: readLen), chunk.count >= 2 else { return nil }
 

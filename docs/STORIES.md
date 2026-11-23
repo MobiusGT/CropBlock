@@ -38,7 +38,7 @@ UX:
 - States: Missing tool shows red icon + `"Not Found"` + `Browse…`; found tool shows green checkmark + resolved path + origin badge (`Bundled`, `Homebrew`, `PATH`, `Custom`); Copy button flashes `"Copied"`
 - Words: Title `"Tool Setup"`, copyable command `"brew install ffmpeg mkvtoolnix"`, buttons `"Copy Command"`, `"Browse…"`, `"Re-check Tools"`, `"Continue Anyway"`
 - Access: `.noInitialFocus()`, Escape dismisses, VoiceOver reads tool name, status, and path
-Status: todo
+Status: done
 
 ### S-003 Pure-Swift crop math, EBML header reader & detection unit tests
 As the user, Crop Block computes accurate union bounding boxes, even-pixel MKV crop offsets, SAR-adjusted display dimensions, and Variable AR warnings without over-cropping dark scenes or distorting anamorphic video.
@@ -66,7 +66,7 @@ UX:
 - States: Empty drop zone highlights with accent border on drag-over; non-MKV-only drop shows calm inline banner `"No MKV files found in dropped items"`; long filenames middle-truncate with full path tooltip
 - Words: `"Add Files…"` (`⌘O`), `"Remove from Queue"` (`⌫`), `"Reveal in Finder"`, tooltip `"Add MKV files or folders to the queue (⌘O)"`
 - Access: Arrow keys move selection, Delete removes, every badge pairs SF Symbol + text label, VoiceOver announces filename, resolution, and status
-Status: todo
+Status: done
 
 ### S-005 Background `ffprobe` + multi-timestamp `cropdetect` engine with cancellation
 As the user, queued files scan automatically in the background across multiple timestamps (`20%`, `50%`, `80%`, 10 s each) using bounded concurrency without freezing the UI, and I can cancel or rescan any file.
@@ -82,7 +82,7 @@ UX:
 - States: Scanning shows compact inline `ProgressView` + `"Scanning…"`; Error shows red `Error` badge and inline actionable error card in detail pane with `"Rescan"` button
 - Words: `"Scan Selected"` (`⌘R`), `"Scan All Pending"` (`⇧⌘R`), `"Stop Scanning"` (`⌘.`), tooltip `"Scan all pending files for black bars (⇧⌘R)"`
 - Access: Status transitions readable by VoiceOver; cancel available via keyboard `⌘.`
-Status: todo
+Status: done
 
 ### S-006 Visual preview frame with SAR-corrected crop overlay & sample switcher
 As the user, I visually inspect an extracted sample frame for the selected file with dimmed crop bars, a crisp crop boundary, exact `L/R/T/B` offsets, and original vs. cropped resolution and aspect ratio before writing any header.
@@ -97,7 +97,7 @@ UX:
 - States: Pending shows placeholder + `"Scan Now"`; Scanning shows centered progress indicator `"Extracting preview…"`; No Bars shows clean uncropped frame with `"No Black Bars Detected"` capsule; Variable AR uses amber crop boundary until confirmed
 - Words: `"20%"`, `"50%"`, `"80%"`, `"Hide Crop Overlay"` / `"Show Crop Overlay"` (`Space`), tooltip `"Toggle crop overlay visibility (Space)"`
 - Access: Capsule text sits over dark scrim for >= 4.5:1 contrast in both modes; keyboard shortcuts `Space`, `⌘1–3`; VoiceOver describes cropped dimensions and offsets
-Status: todo
+Status: done
 
 ### S-007 Matroska header diff inspector, Variable AR confirmation & Player Compatibility popover
 As the user, I review the exact Matroska track `v1` before-and-after header diff, explicitly confirm any Variable AR warning before applying, and can check player compatibility from a subtle toolbar info popover.
@@ -112,7 +112,7 @@ UX:
 - States: Non-1:1 SAR displays explicit note (e.g., `"Anamorphic SAR 32:27 applied"`); Variable AR banner highlights disagreeing timestamps inline in amber with warning icon
 - Words: `"Matroska Header Changes (track:v1)"`, `"Variable Aspect Ratio Detected"`, `"Allow crop despite variable aspect ratio"`, popover title `"Player Compatibility"` noting `mpv`, `MPC-BE`, and `Kodi` support vs. `VLC` and web/TV clients ignoring `PixelCrop*`
 - Access: Warning uses icon + title + text (not color alone); monospaced digits align cleanly in `GridRow`; popover closes on Escape
-Status: todo
+Status: done
 
 ### S-008 Lossless in-place Apply Crop & 1-Click Restore Original (via `CropBackend` protocol)
 As the user, I click **Apply Crop** (`⌘↩`) to losslessly update the MKV header in-place via `MKVHeaderCropBackend` (`mkvpropedit`), and can reverse any edit with **Restore Original** (`⌘Z` / button) even after restarting the app.
@@ -129,7 +129,7 @@ UX:
 - States: Applying shows inline button progress; read-only/missing file shows inline error `"Unable to edit file: check file permissions"` without crashing; file cropped externally shows `"Reset Crop Headers"`
 - Words: `"Apply Crop"` (`⌘↩`), `"Restore Original"`, `"Reset Crop Headers"`, `"Rescan"` (`⌘R`), tooltips with verb + shortcut
 - Access: `⌘↩` triggers Apply Crop when enabled; disabled cleanly for `No Bars`, `Error`, `Scanning`, or unconfirmed `Variable AR`
-Status: todo
+Status: done
 
 ---
 

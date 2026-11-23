@@ -1,8 +1,13 @@
 import AppKit
 import IOKit.pwr_mgt
 import SwiftUI
+import CropBlockKit
 
 enum Snapshot {
+    static var isActive: Bool {
+        !(ProcessInfo.processInfo.environment["APP_SNAPSHOT"] ?? "").isEmpty
+    }
+
     static func runIfRequested(model: AppModel, openSettings: OpenSettingsAction) {
         let env = ProcessInfo.processInfo.environment
         guard let dir = env["APP_SNAPSHOT"], !dir.isEmpty else { return }
@@ -23,18 +28,37 @@ enum Snapshot {
                 &awake
             )
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-            // Wake display reliably before first capture so screencapture sees the active window.
+
             let wake = Process()
             wake.executableURL = URL(fileURLWithPath: "/usr/bin/caffeinate")
             wake.arguments = ["-u", "-t", "2"]
             try? wake.run()
-            try? await Task.sleep(for: .seconds(2.0))
+            try? await Task.sleep(for: .seconds(1.8))
+
+            let realTools = model.tools
 
             for mode in ["light", "dark"] {
                 NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
+
                 for page in SnapshotPage.allCases where only?.contains(page.rawValue) ?? true {
-                    try? await Task.sleep(for: .seconds(0.6))
-                    capture(to: "\(dir)/\(page.rawValue)-\(mode).png")
+                    configure(page: page, model: model, realTools: realTools)
+                    let settleSeconds = page == .setup ? 1.1 : 0.7
+                    try? await Task.sleep(for: .seconds(settleSeconds))
+
+                    let mainWindow = NSApp.windows.first { $0.canBecomeMain && !$0.isSheet }
+                    let writeLayout = (page != .setup && page != .compatibility)
+                    capture(to: "\(dir)/\(page.rawValue)-\(mode).png", window: mainWindow, writeLayout: writeLayout)
+
+                    // Dismiss modal surfaces cleanly before next page
+                    if model.showsToolSetupSheet {
+                        model.showsToolSetupSheet = false
+                        model.tools = realTools
+                        try? await Task.sleep(for: .seconds(0.4))
+                    }
+                    if model.showsCompatibilityPopover {
+                        model.showsCompatibilityPopover = false
+                        try? await Task.sleep(for: .seconds(0.3))
+                    }
                 }
             }
 
@@ -58,6 +82,38 @@ enum Snapshot {
                 if let sheet = window.attachedSheet { window.endSheet(sheet) }
             }
             NSApp.terminate(nil)
+        }
+    }
+
+    private static func configure(page: SnapshotPage, model: AppModel, realTools: ResolvedTools) {
+        model.showsToolSetupSheet = false
+        model.showsCompatibilityPopover = false
+        model.showsCropOverlay = true
+        model.bannerMessage = nil
+        model.tools = realTools
+
+        switch page {
+        case .empty:
+            model.items = []
+            model.selectionID = nil
+        case .detected:
+            if model.items.isEmpty { SeedData.populate(into: model) }
+            model.selectionID = model.items.first { $0.status == .detected }?.id
+        case .variableAR:
+            if model.items.isEmpty { SeedData.populate(into: model) }
+            model.selectionID = model.items.first { $0.status == .variableAR }?.id
+        case .cropped:
+            if model.items.isEmpty { SeedData.populate(into: model) }
+            model.selectionID = model.items.first { $0.status == .cropped }?.id
+        case .setup:
+            if model.items.isEmpty { SeedData.populate(into: model) }
+            model.selectionID = model.items.first { $0.status == .detected }?.id
+            model.tools = SeedData.mockPartiallyMissingTools()
+            model.showsToolSetupSheet = true
+        case .compatibility:
+            if model.items.isEmpty { SeedData.populate(into: model) }
+            model.selectionID = model.items.first { $0.status == .detected }?.id
+            model.showsCompatibilityPopover = true
         }
     }
 

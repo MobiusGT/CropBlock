@@ -1,5 +1,8 @@
+import AppKit
+import Combine
 import Foundation
 import Observation
+import UniformTypeIdentifiers
 import CropBlockKit
 
 enum SettingsTab: String, CaseIterable, Identifiable {
@@ -24,12 +27,645 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
 enum SnapshotPage: String, CaseIterable {
     case empty
+    case detected
+    case variableAR = "variable-ar"
+    case cropped
+    case setup
+    case compatibility
+}
+
+enum QueueItemStatus: Hashable {
+    case pending
+    case scanning
+    case detected
+    case noBars
+    case variableAR
+    case cropped
+    case error(String)
+
+    var label: String {
+        switch self {
+        case .pending: "Pending"
+        case .scanning: "Scanning…"
+        case .detected: "Detected"
+        case .noBars: "No Bars"
+        case .variableAR: "Variable AR"
+        case .cropped: "Cropped"
+        case .error: "Error"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .pending: "clock"
+        case .scanning: "hourglass"
+        case .detected: "crop"
+        case .noBars: "checkmark.circle"
+        case .variableAR: "exclamationmark.triangle.fill"
+        case .cropped: "checkmark.seal.fill"
+        case .error: "xmark.octagon.fill"
+        }
+    }
+
+    var errorMessage: String? {
+        if case .error(let msg) = self { return msg }
+        return nil
+    }
+}
+
+struct QueueItem: Identifiable, Hashable {
+    let id: UUID
+    let url: URL
+    let canonicalPath: String
+    var parentContext: String?
+    var status: QueueItemStatus
+    var inspection: VideoInspection?
+    var detection: CropDetectionResult?
+    var manualInsets: CropInsets?
+    var selectedSampleIndex: Int
+    var variableARConfirmed: Bool
+    var receipt: EditReceipt?
+    var isApplying: Bool
+
+    init(
+        id: UUID = UUID(),
+        url: URL,
+        parentContext: String? = nil,
+        status: QueueItemStatus = .pending,
+        inspection: VideoInspection? = nil,
+        detection: CropDetectionResult? = nil,
+        manualInsets: CropInsets? = nil,
+        selectedSampleIndex: Int = 0,
+        variableARConfirmed: Bool = false,
+        receipt: EditReceipt? = nil,
+        isApplying: Bool = false
+    ) {
+        self.id = id
+        self.url = url
+        self.canonicalPath = MKVFileDiscovery.canonicalPath(for: url)
+        self.parentContext = parentContext
+        self.status = status
+        self.inspection = inspection
+        self.detection = detection
+        self.manualInsets = manualInsets
+        self.selectedSampleIndex = selectedSampleIndex
+        self.variableARConfirmed = variableARConfirmed
+        self.receipt = receipt
+        self.isApplying = isApplying
+    }
+
+    var fileName: String { url.lastPathComponent }
+
+    var activeInsets: CropInsets {
+        if let manualInsets { return manualInsets }
+        if let detection { return detection.proposedInsets }
+        return .zero
+    }
+
+    var isManuallyAdjusted: Bool { manualInsets != nil }
+
+    var canApply: Bool {
+        guard !isApplying, let inspection else { return false }
+        switch status {
+        case .pending, .scanning, .error:
+            return false
+        case .noBars:
+            return !activeInsets.isZero
+        case .variableAR:
+            return variableARConfirmed && (!activeInsets.isZero || inspection.currentHeader.hasNonZeroCrop)
+        case .detected, .cropped:
+            return !activeInsets.isZero
+        }
+    }
+
+    var canRestore: Bool {
+        guard !isApplying, let inspection else { return false }
+        return receipt != nil || inspection.currentHeader.hasNonZeroCrop
+    }
+
+    var restoreButtonTitle: String {
+        receipt != nil ? "Restore Original" : "Reset Crop Headers"
+    }
+
+    var resolutionSummary: String {
+        guard let inspection else { return "Waiting to scan" }
+        let stored = inspection.formattedStoredResolution
+        let insets = activeInsets
+        if !insets.isZero {
+            let display = CropCalculator.displayDimensions(
+                storedWidth: inspection.storedWidth,
+                storedHeight: inspection.storedHeight,
+                insets: insets,
+                sar: inspection.sar
+            )
+            return "\(stored) → \(display.formattedDimensions) · \(display.formattedAspectRatio)"
+        }
+        let full = inspection.fullFrameDisplayDimensions
+        return "\(stored) · \(full.formattedAspectRatio)"
+    }
+
+    var currentSample: CropSample? {
+        guard let samples = detection?.samples, !samples.isEmpty else { return nil }
+        let clamped = min(max(0, selectedSampleIndex), samples.count - 1)
+        return samples[clamped]
+    }
+}
+
+/// Bridges `@Observable` queue state into SwiftUI `.commands` so menu items enable/disable reliably.
+@MainActor
+final class MenuState: ObservableObject {
+    static let shared = MenuState()
+
+    @Published var hasSelection = false
+    @Published var hasPending = false
+    @Published var isScanning = false
+    @Published var canApplySelected = false
+    @Published var canRestoreSelected = false
+    @Published var restoreTitle = "Restore Original"
+    @Published var hasCompleted = false
+    @Published var showsCropOverlay = true
+    @Published var sampleCount = 0
+
+    func sync(from model: AppModel) {
+        let sel = model.selectedItem
+        hasSelection = sel != nil
+        hasPending = model.items.contains { $0.status == .pending }
+        isScanning = model.isScanning
+        canApplySelected = sel?.canApply ?? false
+        canRestoreSelected = sel?.canRestore ?? false
+        restoreTitle = sel?.restoreButtonTitle ?? "Restore Original"
+        hasCompleted = model.items.contains { $0.status == .cropped || $0.status == .noBars }
+        showsCropOverlay = model.showsCropOverlay
+        sampleCount = sel?.detection?.samples.count ?? 0
+    }
 }
 
 @Observable
 final class AppModel {
-    var settingsTab: SettingsTab = .general
-    var statusMessage: String?
+    static let shared = AppModel()
 
-    init() {}
+    var items: [QueueItem] = [] { didSet { syncMenu() } }
+    var selectionID: UUID? { didSet { syncMenu() } }
+    var settingsTab: SettingsTab = .general
+
+    var tools: ResolvedTools
+    var customToolPaths: CustomToolPaths
+    var detectionSettings: DetectionSettings
+
+    var showsToolSetupSheet = false
+    var showsCompatibilityPopover = false
+    var showsCropOverlay = true { didSet { syncMenu() } }
+    var isDropTargeted = false
+    var bannerMessage: String?
+
+    var isScanning = false { didSet { syncMenu() } }
+    var activeScanCount = 0
+
+    @ObservationIgnored let backend: any CropBackend = MKVHeaderCropBackend()
+    @ObservationIgnored let receiptStore: ReceiptStore
+    @ObservationIgnored let previewCacheDir: URL
+    @ObservationIgnored private var scanTask: Task<Void, Never>?
+    @ObservationIgnored private var hasCheckedInitialTools = false
+
+    private enum DefaultsKey {
+        static let customFFmpeg = "tools.custom.ffmpeg"
+        static let customFFprobe = "tools.custom.ffprobe"
+        static let customMkvpropedit = "tools.custom.mkvpropedit"
+    }
+
+    init(storeDirectory: URL = StoreLocation.directoryURL) {
+        self.receiptStore = ReceiptStore(directoryURL: storeDirectory)
+        self.previewCacheDir = FileManager.default.temporaryDirectory
+            .appending(path: "CropBlock-Previews-\(ProcessInfo.processInfo.processIdentifier)", directoryHint: .isDirectory)
+        let savedPaths = CustomToolPaths(
+            ffmpeg: UserDefaults.standard.string(forKey: DefaultsKey.customFFmpeg) ?? "",
+            ffprobe: UserDefaults.standard.string(forKey: DefaultsKey.customFFprobe) ?? "",
+            mkvpropedit: UserDefaults.standard.string(forKey: DefaultsKey.customMkvpropedit) ?? ""
+        )
+        self.customToolPaths = savedPaths
+        self.detectionSettings = .default
+        self.tools = ToolResolver().resolveAll(customPaths: savedPaths)
+        syncMenu()
+    }
+
+    var selectedItem: QueueItem? {
+        guard let selectionID else { return nil }
+        return items.first { $0.id == selectionID }
+    }
+
+    var queueSubtitle: String {
+        items.count == 1 ? "1 file" : "\(items.count) files"
+    }
+
+    func plan(for item: QueueItem) -> CropApplyPlan? {
+        guard let inspection = item.inspection else { return nil }
+        return backend.buildPlan(for: inspection, insets: item.activeInsets)
+    }
+
+    // MARK: - Tool Discovery
+
+    func startupCheck() async {
+        guard !hasCheckedInitialTools else { return }
+        hasCheckedInitialTools = true
+        await refreshTools(presentSheetIfMissing: !Snapshot.isActive && !SelfTest.requested)
+    }
+
+    func refreshTools(presentSheetIfMissing: Bool = false) async {
+        let resolved = await ToolResolver().resolveAllWithVersions(customPaths: customToolPaths)
+        tools = resolved
+        if presentSheetIfMissing && !resolved.allAvailable {
+            showsToolSetupSheet = true
+        }
+    }
+
+    func setCustomToolPath(_ path: String, for tool: ExternalTool) {
+        customToolPaths[tool] = path
+        switch tool {
+        case .ffmpeg: UserDefaults.standard.set(path, forKey: DefaultsKey.customFFmpeg)
+        case .ffprobe: UserDefaults.standard.set(path, forKey: DefaultsKey.customFFprobe)
+        case .mkvpropedit: UserDefaults.standard.set(path, forKey: DefaultsKey.customMkvpropedit)
+        }
+        Task { await refreshTools(presentSheetIfMissing: false) }
+    }
+
+    func browseCustomTool(for tool: ExternalTool) {
+        let panel = NSOpenPanel()
+        panel.title = "Locate \(tool.displayName)"
+        panel.prompt = "Select"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.showsHiddenFiles = true
+        if let existing = tools[tool].url {
+            panel.directoryURL = existing.deletingLastPathComponent()
+        } else if FileManager.default.fileExists(atPath: "/opt/homebrew/bin") {
+            panel.directoryURL = URL(fileURLWithPath: "/opt/homebrew/bin")
+        }
+        if panel.runModal() == .OK, let url = panel.url {
+            setCustomToolPath(url.path, for: tool)
+        }
+    }
+
+    // MARK: - Queue Intake & Management
+
+    func openFilePanel() {
+        let panel = NSOpenPanel()
+        panel.title = "Add MKV Files or Folders"
+        panel.prompt = "Add"
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        var types: [UTType] = [.folder]
+        if let mkv = UTType(filenameExtension: "mkv") {
+            types.insert(mkv, at: 0)
+        }
+        panel.allowedContentTypes = types
+        if panel.runModal() == .OK {
+            addURLs(panel.urls)
+        }
+    }
+
+    func addURLs(_ urls: [URL], autoScan: Bool? = nil) {
+        guard !urls.isEmpty else { return }
+        let existing = Set(items.map(\.canonicalPath))
+        let discovery = MKVFileDiscovery.discoverMKVFiles(from: urls, existingCanonicalPaths: existing)
+
+        if discovery.urls.isEmpty {
+            if discovery.skippedNonMKVCount > 0 {
+                bannerMessage = "No MKV files found in the dropped items."
+            }
+            return
+        }
+
+        bannerMessage = nil
+        var newlyAddedIDs: [UUID] = []
+        for url in discovery.urls {
+            let item = QueueItem(url: url)
+            items.append(item)
+            newlyAddedIDs.append(item.id)
+        }
+
+        recomputeParentContextLabels()
+        if selectionID == nil {
+            selectionID = newlyAddedIDs.first
+        }
+
+        // Load any existing receipts from disk for newly added files
+        let addedSnapshot = items.filter { newlyAddedIDs.contains($0.id) }
+        Task {
+            for item in addedSnapshot {
+                if let receipt = await receiptStore.receipt(for: item.url) {
+                    updateItem(id: item.id) { $0.receipt = receipt }
+                }
+            }
+            let shouldScan = autoScan ?? detectionSettings.autoScanOnAdd
+            if shouldScan {
+                if tools.allAvailable {
+                    scanAllPending()
+                } else if !Snapshot.isActive && !SelfTest.requested {
+                    showsToolSetupSheet = true
+                }
+            }
+        }
+    }
+
+    func removeItem(id: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        let wasSelected = selectionID == id
+        items.remove(at: idx)
+        recomputeParentContextLabels()
+        if wasSelected {
+            if items.isEmpty {
+                selectionID = nil
+            } else {
+                selectionID = items[min(idx, items.count - 1)].id
+            }
+        }
+    }
+
+    func removeSelected() {
+        guard let selectionID else { return }
+        removeItem(id: selectionID)
+    }
+
+    func clearCompleted() {
+        let removedSelection = selectedItem.map { $0.status == .cropped || $0.status == .noBars } ?? false
+        items.removeAll { $0.status == .cropped || $0.status == .noBars }
+        recomputeParentContextLabels()
+        if removedSelection {
+            selectionID = items.first?.id
+        }
+    }
+
+    func revealInFinder(id: UUID) {
+        guard let item = items.first(where: { $0.id == id }) else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([item.url])
+    }
+
+    func selectSample(_ index: Int, for id: UUID) {
+        updateItem(id: id) { item in
+            let count = item.detection?.samples.count ?? 0
+            guard count > 0 else { return }
+            item.selectedSampleIndex = min(max(0, index), count - 1)
+        }
+    }
+
+    func setVariableARConfirmed(_ confirmed: Bool, for id: UUID) {
+        updateItem(id: id) { $0.variableARConfirmed = confirmed }
+    }
+
+    // MARK: - Bounded Concurrent Scanning
+
+    func scanAllPending() {
+        let pendingIDs = items.filter { $0.status == .pending }.map(\.id)
+        guard !pendingIDs.isEmpty else { return }
+        startScanBatch(ids: pendingIDs)
+    }
+
+    func rescanItem(id: UUID) {
+        updateItem(id: id) {
+            $0.status = .pending
+            $0.manualInsets = nil
+            $0.variableARConfirmed = false
+        }
+        startScanBatch(ids: [id])
+    }
+
+    func stopScanning() {
+        scanTask?.cancel()
+        scanTask = nil
+        isScanning = false
+        activeScanCount = 0
+        for idx in items.indices where items[idx].status == .scanning {
+            items[idx].status = .pending
+        }
+    }
+
+    private func startScanBatch(ids: [UUID]) {
+        guard tools.ffmpegURL != nil && tools.ffprobeURL != nil else {
+            showsToolSetupSheet = true
+            return
+        }
+
+        // Cancel any previous batch only if explicitly replaced; otherwise queue smoothly.
+        scanTask?.cancel()
+        let settings = detectionSettings
+        let resolvedTools = tools
+        let cacheDir = previewCacheDir
+        let maxConcurrency = settings.maxConcurrentScans
+
+        isScanning = true
+        scanTask = Task { [weak self] in
+            guard let self else { return }
+            await withTaskGroup(of: Void.self) { group in
+                var iterator = ids.makeIterator()
+                var running = 0
+
+                @MainActor
+                func enqueueNext() {
+                    while running < maxConcurrency, let nextID = iterator.next() {
+                        guard let target = self.items.first(where: { $0.id == nextID }) else { continue }
+                        running += 1
+                        self.activeScanCount = running
+                        self.updateItem(id: nextID) { $0.status = .scanning }
+                        let fileURL = target.url
+
+                        group.addTask { [weak self] in
+                            await self?.performSingleScan(
+                                id: nextID,
+                                url: fileURL,
+                                settings: settings,
+                                tools: resolvedTools,
+                                cacheDir: cacheDir
+                            )
+                        }
+                    }
+                }
+
+                enqueueNext()
+                for await _ in group {
+                    running = max(0, running - 1)
+                    self.activeScanCount = running
+                    if Task.isCancelled {
+                        group.cancelAll()
+                        break
+                    }
+                    enqueueNext()
+                }
+            }
+            if !Task.isCancelled {
+                self.isScanning = false
+                self.activeScanCount = 0
+            }
+        }
+    }
+
+    private func performSingleScan(
+        id: UUID,
+        url: URL,
+        settings: DetectionSettings,
+        tools: ResolvedTools,
+        cacheDir: URL
+    ) async {
+        do {
+            let result = try await VideoScanner.scan(
+                url: url,
+                settings: settings,
+                tools: tools,
+                previewCacheDirectory: cacheDir
+            )
+            let existingReceipt = await receiptStore.receipt(for: url)
+            let newStatus: QueueItemStatus
+            if result.detection.hasVariableAR {
+                newStatus = .variableAR
+            } else if result.detection.hasBars {
+                // If already cropped to these exact insets on disk, reflect Cropped status.
+                if result.inspection.currentHeader.effectiveCropInsets == result.detection.proposedInsets {
+                    newStatus = .cropped
+                } else {
+                    newStatus = .detected
+                }
+            } else {
+                newStatus = .noBars
+            }
+
+            let defaultSampleIdx = result.detection.samples.count >= 2 ? 1 : 0
+            updateItem(id: id) { item in
+                item.inspection = result.inspection
+                item.detection = result.detection
+                item.receipt = existingReceipt
+                item.selectedSampleIndex = defaultSampleIdx
+                item.status = newStatus
+            }
+        } catch is CancellationError {
+            updateItem(id: id) { if $0.status == .scanning { $0.status = .pending } }
+        } catch ProcessRunnerError.cancelled {
+            updateItem(id: id) { if $0.status == .scanning { $0.status = .pending } }
+        } catch {
+            updateItem(id: id) { item in
+                item.status = .error(error.localizedDescription)
+            }
+        }
+    }
+
+    // MARK: - Lossless Apply & 1-Click Restore
+
+    func applyCrop(for id: UUID) {
+        guard let item = items.first(where: { $0.id == id }),
+              item.canApply,
+              let inspection = item.inspection,
+              let plan = plan(for: item) else {
+            return
+        }
+        guard tools.mkvpropeditURL != nil else {
+            showsToolSetupSheet = true
+            return
+        }
+
+        updateItem(id: id) { $0.isApplying = true }
+        let targetURL = item.url
+        let existingReceipt = item.receipt
+        let currentTools = tools
+
+        Task {
+            do {
+                let receipt = try await backend.apply(
+                    plan: plan,
+                    inspection: inspection,
+                    to: targetURL,
+                    tools: currentTools,
+                    existingReceipt: existingReceipt
+                )
+                try await receiptStore.save(receipt)
+                let refreshedHeader = (try? MatroskaHeaderReader.readVideoHeader(at: targetURL)) ?? inspection.currentHeader
+
+                updateItem(id: id) { item in
+                    item.isApplying = false
+                    item.receipt = receipt
+                    item.inspection?.currentHeader = refreshedHeader
+                    item.status = .cropped
+                }
+            } catch {
+                updateItem(id: id) { item in
+                    item.isApplying = false
+                    item.status = .error(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    func restoreOriginal(for id: UUID) {
+        guard let item = items.first(where: { $0.id == id }),
+              item.canRestore,
+              let inspection = item.inspection else {
+            return
+        }
+        guard tools.mkvpropeditURL != nil else {
+            showsToolSetupSheet = true
+            return
+        }
+
+        updateItem(id: id) { $0.isApplying = true }
+        let targetURL = item.url
+        let receipt = item.receipt
+        let currentTools = tools
+
+        Task {
+            do {
+                try await backend.restore(
+                    receipt: receipt,
+                    inspection: inspection,
+                    to: targetURL,
+                    tools: currentTools
+                )
+                try await receiptStore.remove(for: targetURL)
+                let refreshedHeader = (try? MatroskaHeaderReader.readVideoHeader(at: targetURL)) ?? MatroskaVideoHeader()
+
+                updateItem(id: id) { item in
+                    item.isApplying = false
+                    item.receipt = nil
+                    item.inspection?.currentHeader = refreshedHeader
+                    if let detection = item.detection {
+                        if detection.hasVariableAR {
+                            item.status = .variableAR
+                        } else if detection.hasBars {
+                            item.status = .detected
+                        } else {
+                            item.status = .noBars
+                        }
+                    } else {
+                        item.status = .pending
+                    }
+                }
+            } catch {
+                updateItem(id: id) { item in
+                    item.isApplying = false
+                    item.status = .error(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    func cleanupPreviewCache() {
+        try? FileManager.default.removeItem(at: previewCacheDir)
+    }
+
+    // MARK: - Helpers
+
+    private func updateItem(id: UUID, _ mutate: (inout QueueItem) -> Void) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        mutate(&items[idx])
+        syncMenu()
+    }
+
+    private func recomputeParentContextLabels() {
+        let labels = MKVFileDiscovery.parentContextLabels(for: items.map(\.url))
+        for idx in items.indices {
+            items[idx].parentContext = labels[items[idx].canonicalPath]
+        }
+    }
+
+    private func syncMenu() {
+        MenuState.shared.sync(from: self)
+    }
 }
