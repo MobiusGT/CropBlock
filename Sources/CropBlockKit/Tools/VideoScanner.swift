@@ -21,15 +21,17 @@ public enum VideoScannerError: Error, LocalizedError, Sendable {
     }
 }
 
-/// Orchestrates `MatroskaHeaderReader` + `ffprobe` + multi-timestamp `ffmpeg cropdetect` +
-/// preview frame extraction for a single MKV file, supporting cooperative Swift Task cancellation.
+/// Orchestrates `MatroskaHeaderReader` + `ffprobe` + Standard or Deep `ffmpeg cropdetect` +
+/// representative preview frame extraction for a single MKV file, supporting cooperative cancellation.
 public enum VideoScanner {
 
     public static func scan(
         url: URL,
         settings: DetectionSettings,
         tools: ResolvedTools,
-        previewCacheDirectory: URL
+        previewCacheDirectory: URL,
+        mode: ScanMode = .standard,
+        onProgress: (@Sendable (Int, Int) -> Void)? = nil
     ) async throws -> VideoScanResult {
         try Task.checkCancellation()
 
@@ -40,7 +42,7 @@ public enum VideoScanner {
             throw VideoScannerError.missingTool("ffmpeg")
         }
 
-        // 1. Read raw Matroska EBML header (instant O(1) seek, even if Tracks sits at EOF via SeekHead).
+        // 1. Read raw Matroska EBML header (instant O(1) seek, including SeekHead EOF Tracks).
         let mkvHeader = try MatroskaHeaderReader.readVideoHeader(at: url)
         try Task.checkCancellation()
 
@@ -69,40 +71,63 @@ public enum VideoScanner {
             currentHeader: mkvHeader
         )
 
-        // 3. Run multi-timestamp cropdetect + extract preview frame for each window.
-        let windows = CropCalculator.sampleWindows(duration: probe.duration, settings: settings)
-        let fileKey = String(abs(MKVFileDiscovery.canonicalPath(for: url).hashValue))
+        // 3. Schedule Standard or Deep Scan windows and run cropdetect across them.
+        let windows: [SampleWindow]
+        let isFullVideoSinglePass: Bool
+        switch mode {
+        case .standard:
+            windows = CropCalculator.sampleWindows(duration: probe.duration, settings: settings)
+            isFullVideoSinglePass = false
+        case .deep:
+            let deepPlan = CropCalculator.deepScanWindows(duration: probe.duration, settings: settings)
+            windows = deepPlan.windows
+            isFullVideoSinglePass = deepPlan.isFullVideoSinglePass
+        }
+
         var samples: [CropSample] = []
         samples.reserveCapacity(windows.count)
 
-        for window in windows {
+        for (idx, window) in windows.enumerated() {
             try Task.checkCancellation()
-            var sample = try await CropDetectRunner.detectSample(
+            onProgress?(idx + 1, windows.count)
+            let sample = try await CropDetectRunner.detectSample(
                 url: url,
                 window: window,
                 settings: settings,
                 ffmpeg: ffmpeg
             )
-            try Task.checkCancellation()
+            samples.append(sample)
+        }
 
+        // 4. Select representative preview indices (all 3 for standard; up to 5 for Deep Scan,
+        //    prioritizing outlier/Variable AR frames) and extract only those preview JPEGs.
+        let fileKey = String(abs(MKVFileDiscovery.canonicalPath(for: url).hashValue))
+        let modeTag = mode.rawValue
+        let previewIndices: [Int] = mode == .deep
+            ? CropCalculator.selectPreviewIndices(samples: samples, maxCount: 5)
+            : Array(0..<samples.count)
+
+        for idx in previewIndices {
+            try Task.checkCancellation()
             let previewURL = previewCacheDirectory
-                .appending(path: "\(fileKey)-sample-\(window.index).jpg")
+                .appending(path: "\(fileKey)-\(modeTag)-sample-\(idx).jpg")
             if let extracted = try? await FrameExtractor.extractFrame(
                 from: url,
-                window: window,
+                window: samples[idx].window,
                 outputURL: previewURL,
                 ffmpeg: ffmpeg
             ) {
-                sample.previewImagePath = extracted.path
+                samples[idx].previewImagePath = extracted.path
             }
-            samples.append(sample)
         }
 
         let detection = CropCalculator.unionAndAnalyze(
             samples: samples,
             frameWidth: storedWidth,
             frameHeight: storedHeight,
-            noiseFloor: settings.noiseFloorPixels
+            noiseFloor: settings.noiseFloorPixels,
+            scanMode: mode,
+            isFullVideoSinglePass: isFullVideoSinglePass
         )
 
         return VideoScanResult(inspection: inspection, detection: detection)

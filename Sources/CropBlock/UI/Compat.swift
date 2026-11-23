@@ -51,3 +51,16 @@ struct CompatToolbarFixedSpacer: ToolbarContent {
         }
     }
 }
+
+extension ToolbarContent {
+    /// Removes the default Liquid Glass backdrop behind high-contrast custom toolbar pills on macOS 26+
+    /// so solid capsules keep crisp contrast without glass-on-glass washout.
+    @ToolbarContentBuilder
+    func compatSharedBackgroundHidden() -> some ToolbarContent {
+        if #available(macOS 26, *) {
+            self.sharedBackgroundVisibility(.hidden)
+        } else {
+            self
+        }
+    }
+}

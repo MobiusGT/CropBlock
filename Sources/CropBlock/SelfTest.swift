@@ -28,17 +28,30 @@ enum SelfTest {
                 "gearshape", "paintbrush", "viewfinder", "stop.fill", "arrow.uturn.backward",
                 "folder", "minus.circle", "eye", "eye.slash", "aspectratio", "arrow.right",
                 "wrench.and.screwdriver", "arrow.clockwise", "doc.on.doc", "play.rectangle",
-                "info.circle.fill", "xmark",
+                "info.circle.fill", "xmark", "scope",
             ]
             for name in symbols {
                 check("SF Symbol '\(name)' exists", NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil)
             }
 
-            // 2. Seed data + Variable AR confirmation guard + Sample switcher + Manual offsets + Remove selection advance
+            // 2. Seed data + Variable AR guard + Deep Scan suggestion/batch counts + Manual offsets
             SeedData.populate(into: model)
-            check("Seed queue loaded 6 files", model.items.count == 6)
+            check("Seed queue loaded 8 files", model.items.count == 8)
 
-            if let dune = model.items.first(where: { $0.status == .detected }) {
+            if let film = model.items.first(where: { $0.status == .detected && $0.shouldSuggestDeepScan }) {
+                check("Film transfer jitter item suggests Deep Scan", film.shouldSuggestDeepScan)
+            } else {
+                check("Film transfer jitter seed item present", false)
+            }
+
+            if let deep = model.items.first(where: { $0.isDeepScanned }) {
+                check("Deep Scanned item shows 15-sample badge and 5 preview frames", deep.deepScanBadgeLabel == "Deep Scanned · 15 samples" && deep.previewSamples.count == 5)
+                check("Deep Scanned item does not suggest Deep Scan again", !deep.shouldSuggestDeepScan)
+            } else {
+                check("Deep Scanned seed item present", false)
+            }
+
+            if let dune = model.items.first(where: { $0.status == .detected && !$0.shouldSuggestDeepScan && !$0.isDeepScanned }) {
                 let originalTop = dune.activeInsets.top
                 model.setInset(.top, value: originalTop + 2, for: dune.id)
                 let adjusted = model.items.first { $0.id == dune.id }
@@ -48,13 +61,17 @@ enum SelfTest {
                 check("Reset restores detected offsets", reset?.activeInsets.top == originalTop && reset?.isManuallyAdjusted == false)
             }
 
+            // Deep Scan All skips already-Deep-Scanned (Lawrence) and already-Cropped (Arrival): 8 - 2 = 6 eligible
+            check("Deep Scan All skips already-Deep-Scanned and Cropped files (6 of 8)", model.deepScanAllCount == 6)
+
             if let imax = model.items.first(where: { $0.status == .variableAR }) {
-                check("Batch ready skips unconfirmed Variable AR (only Dune ready)", model.readyToApplyCount == 1)
+                // Crop All ready: Dune + Blade Runner + Lawrence = 3 (skips unconfirmed Variable AR, Cropped, No Bars, Pending, Error)
+                check("Crop All ready skips unconfirmed Variable AR (3 ready)", model.cropAllReadyCount == 3)
                 check("Variable AR item blocks Apply until confirmed", !imax.canApply)
                 model.setVariableARConfirmed(true, for: imax.id)
                 let confirmed = model.items.first { $0.id == imax.id }
                 check("Confirming Variable AR enables Apply", confirmed?.canApply == true)
-                check("Batch ready includes confirmed Variable AR (now 2 ready)", model.readyToApplyCount == 2)
+                check("Crop All ready includes confirmed Variable AR (now 4 ready)", model.cropAllReadyCount == 4)
 
                 model.selectSample(0, for: imax.id)
                 check("Sample switcher selects index 0", model.items.first { $0.id == imax.id }?.selectedSampleIndex == 0)
@@ -67,7 +84,7 @@ enum SelfTest {
             let secondID = model.items[1].id
             model.selectionID = firstID
             model.removeSelected()
-            check("Remove selected deletes row and advances selection", model.items.count == 5 && model.selectionID == secondID)
+            check("Remove selected deletes row and advances selection", model.items.count == 7 && model.selectionID == secondID)
 
             // 4. Settings validation & reset check
             model.updateSamplePercentage(at: 0, percent: 15)
@@ -135,6 +152,14 @@ enum SelfTest {
                     check("Detected insets equal T=30 B=30", scanned?.activeInsets == CropInsets(left: 0, right: 0, top: 30, bottom: 30))
 
                     if let id = scanned?.id {
+                        // Also verify per-file Deep Scan runs cleanly on the live MKV
+                        model.deepScanItem(id: id)
+                        for _ in 0..<50 {
+                            if let item = model.items.first, item.status != .pending && item.status != .scanning { break }
+                            try? await Task.sleep(for: .milliseconds(200))
+                        }
+                        check("Live per-file Deep Scan marks file Deep Scanned", model.items.first?.isDeepScanned == true && model.items.first?.activeInsets == CropInsets(left: 0, right: 0, top: 30, bottom: 30))
+
                         model.applyCrop(for: id)
                         for _ in 0..<25 {
                             if model.items.first?.isApplying == false && model.items.first?.status == .cropped { break }

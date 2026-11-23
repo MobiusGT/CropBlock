@@ -68,4 +68,31 @@ enum Surface {
             }
         }
     )
+
+    /// High-contrast secondary toolbar action pill (paired beside accented "Crop All").
+    static let toolbarSecondaryFill = Color(
+        light: 0x262A35,
+        dark: 0x3A3F4E,
+        highContrastLight: 0x151820,
+        highContrastDark: 0x4A5064
+    )
+    static let toolbarSecondaryHover = Color(
+        light: 0x343948,
+        dark: 0x474D5F,
+        highContrastLight: 0x242834,
+        highContrastDark: 0x5A6178
+    )
+    static let toolbarSecondaryForeground = Color.white
+    static let toolbarSecondaryBorder = Color(
+        nsColor: NSColor(name: nil) { appearance in
+            switch appearance.bestMatch(from: [
+                .aqua, .darkAqua, .accessibilityHighContrastAqua, .accessibilityHighContrastDarkAqua,
+            ]) {
+            case .darkAqua: NSColor.white.withAlphaComponent(0.22)
+            case .accessibilityHighContrastDarkAqua: NSColor.white.withAlphaComponent(0.45)
+            case .accessibilityHighContrastAqua: NSColor.black.withAlphaComponent(0.45)
+            default: NSColor.black.withAlphaComponent(0.20)
+            }
+        }
+    )
 }

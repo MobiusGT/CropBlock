@@ -17,6 +17,7 @@ Every view in `Sources/CropBlock/` uses tokens from `Sources/CropBlock/UI/`. Nev
 - Neutral surfaces use system semantics (`.background`, `.controlBackgroundColor`, `.separator`) or `Surface.card` / `Surface.subtle` / `Surface.hairline` (all 4-variant light/dark/high-contrast colors).
 - Preview scrims (`Surface.previewCanvas`, `Surface.cropScrim`, `Surface.hudPill`) stay dark in both appearances so video frames and floating dimension text keep >= 4.5:1 contrast.
 - Status colors (`Surface.success`, `Surface.warning`, `Surface.danger`) ALWAYS pair with an SF Symbol and text label.
+- Paired toolbar batch actions (`ToolbarBatchButtonStyle` in `UI/ToolbarButtonStyles.swift`) use `Palette.accent` + `Palette.onAccent` for **Crop All** and `Surface.toolbarSecondaryFill` + `Surface.toolbarSecondaryForeground` + `Surface.toolbarSecondaryBorder` for **Deep Scan All**, with `.compatSharedBackgroundHidden()` on macOS 26 to prevent Liquid Glass washout.
 
 ## Radii (`UI/Radius.swift`)
 - `xs` (4) inline tags/badges, `sm` (8) controls & rows, `md` (12) cards & preview frame, `lg` (16) drop zones & banners.

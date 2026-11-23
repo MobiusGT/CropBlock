@@ -98,10 +98,16 @@ enum Snapshot {
             model.selectionID = nil
         case .detected:
             if model.items.isEmpty { SeedData.populate(into: model) }
-            model.selectionID = model.items.first { $0.status == .detected }?.id
+            model.selectionID = model.items.first { $0.status == .detected && !$0.shouldSuggestDeepScan && !$0.isDeepScanned }?.id
+        case .framingJitter:
+            if model.items.isEmpty { SeedData.populate(into: model) }
+            model.selectionID = model.items.first { $0.status == .detected && $0.shouldSuggestDeepScan }?.id
         case .variableAR:
             if model.items.isEmpty { SeedData.populate(into: model) }
             model.selectionID = model.items.first { $0.status == .variableAR }?.id
+        case .deepScanned:
+            if model.items.isEmpty { SeedData.populate(into: model) }
+            model.selectionID = model.items.first { $0.isDeepScanned }?.id
         case .cropped:
             if model.items.isEmpty { SeedData.populate(into: model) }
             model.selectionID = model.items.first { $0.status == .cropped }?.id

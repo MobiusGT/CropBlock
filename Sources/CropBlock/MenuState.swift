@@ -30,7 +30,9 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 enum SnapshotPage: String, CaseIterable {
     case empty
     case detected
+    case framingJitter = "framing-jitter"
     case variableAR = "variable-ar"
+    case deepScanned = "deep-scanned"
     case cropped
     case setup
     case compatibility
@@ -78,10 +80,12 @@ final class MenuState: ObservableObject {
     @Published var hasSelection = false
     @Published var hasPending = false
     @Published var isScanning = false
+    @Published var canDeepScanSelected = false
+    @Published var deepScanAllCount = 0
     @Published var canApplySelected = false
     @Published var canRestoreSelected = false
     @Published var restoreTitle = "Restore Original"
-    @Published var readyToApplyCount = 0
+    @Published var cropAllReadyCount = 0
     @Published var isBatchApplying = false
     @Published var hasCompleted = false
     @Published var showsCropOverlay = true
@@ -92,13 +96,15 @@ final class MenuState: ObservableObject {
         hasSelection = sel != nil
         hasPending = model.items.contains { $0.status == .pending }
         isScanning = model.isScanning
+        canDeepScanSelected = sel != nil && sel?.status != .scanning && sel?.isApplying == false
+        deepScanAllCount = model.deepScanAllCount
         canApplySelected = sel?.canApply ?? false
         canRestoreSelected = sel?.canRestore ?? false
         restoreTitle = sel?.restoreButtonTitle ?? "Restore Original"
-        readyToApplyCount = model.readyToApplyCount
+        cropAllReadyCount = model.cropAllReadyCount
         isBatchApplying = model.isBatchApplying
         hasCompleted = model.items.contains { $0.status == .cropped || $0.status == .noBars }
         showsCropOverlay = model.showsCropOverlay
-        sampleCount = sel?.detection?.samples.count ?? 0
+        sampleCount = sel?.previewSamples.count ?? 0
     }
 }

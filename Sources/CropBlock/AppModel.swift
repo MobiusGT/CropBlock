@@ -26,7 +26,10 @@ final class AppModel {
     var banner: AppBanner?
 
     var isScanning = false { didSet { syncMenu() } }
+    var activeBatchScanMode: ScanMode = .standard
     var activeScanCount = 0
+    var batchScanCompleted = 0
+    var batchScanTotal = 0
     var isBatchApplying = false { didSet { syncMenu() } }
     var batchApplyCompleted = 0
     var batchApplyTotal = 0
@@ -72,21 +75,11 @@ final class AppModel {
         items.count == 1 ? "1 file" : "\(items.count) files"
     }
 
-    var readyToApplyIDs: [UUID] {
+    var cropAllReadyIDs: [UUID] {
         let candidates = items.map { item -> BatchCandidate in
-            let kind: BatchEligibilityStatus
-            switch item.status {
-            case .pending: kind = .pending
-            case .scanning: kind = .scanning
-            case .detected: kind = .detected
-            case .noBars: kind = .noBars
-            case .variableAR: kind = .variableAR
-            case .cropped: kind = .cropped
-            case .error: kind = .error
-            }
-            return BatchCandidate(
+            BatchCandidate(
                 id: item.id,
-                status: kind,
+                status: eligibilityStatus(for: item.status),
                 hasNonZeroInsets: !item.activeInsets.isZero,
                 variableARConfirmed: item.variableARConfirmed,
                 isApplying: item.isApplying
@@ -95,7 +88,33 @@ final class AppModel {
         return BatchApplyPlanner.eligibleIDs(from: candidates)
     }
 
-    var readyToApplyCount: Int { readyToApplyIDs.count }
+    var cropAllReadyCount: Int { cropAllReadyIDs.count }
+
+    var deepScanEligibleIDs: [UUID] {
+        let candidates = items.map { item in
+            DeepScanCandidate(
+                id: item.id,
+                status: eligibilityStatus(for: item.status),
+                isDeepScanned: item.isDeepScanned,
+                isApplying: item.isApplying
+            )
+        }
+        return DeepScanBatchPlanner.eligibleIDs(from: candidates)
+    }
+
+    var deepScanAllCount: Int { deepScanEligibleIDs.count }
+
+    private func eligibilityStatus(for status: QueueItemStatus) -> BatchEligibilityStatus {
+        switch status {
+        case .pending: .pending
+        case .scanning: .scanning
+        case .detected: .detected
+        case .noBars: .noBars
+        case .variableAR: .variableAR
+        case .cropped: .cropped
+        case .error: .error
+        }
+    }
 
     func plan(for item: QueueItem) -> CropApplyPlan? {
         guard let inspection = item.inspection else { return nil }
@@ -286,7 +305,7 @@ final class AppModel {
 
     func selectSample(_ index: Int, for id: UUID) {
         updateItem(id: id) { item in
-            let count = item.detection?.samples.count ?? 0
+            let count = item.previewSamples.count
             guard count > 0 else { return }
             item.selectedSampleIndex = min(max(0, index), count - 1)
         }

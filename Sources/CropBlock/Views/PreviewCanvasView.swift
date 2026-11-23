@@ -19,14 +19,15 @@ struct PreviewCanvasView: View {
         ZStack {
             Surface.previewCanvas
 
-            if let inspection = item.inspection {
+            if let inspection = item.inspection, item.status != .scanning {
                 previewContent(inspection: inspection)
             } else if case .scanning = item.status {
                 VStack(spacing: Space.sm) {
                     ProgressView()
                         .controlSize(.regular)
-                    Text("Scanning black bars and extracting preview…")
+                    Text(item.scanningDetailText)
                         .font(.callout)
+                        .monospacedDigit()
                         .foregroundStyle(Surface.hudForeground.opacity(0.85))
                 }
             } else {
@@ -50,7 +51,7 @@ struct PreviewCanvasView: View {
         .clipShape(shape)
         .overlay(shape.strokeBorder(Surface.hairline, lineWidth: 1))
         .overlay(alignment: .bottom) {
-            if let inspection = item.inspection {
+            if let inspection = item.inspection, item.status != .scanning {
                 bottomHUD(inspection: inspection)
                     .padding(Space.md)
             }
@@ -125,7 +126,7 @@ struct PreviewCanvasView: View {
             insets: insets,
             sar: inspection.sar
         )
-        let samples = item.detection?.samples ?? []
+        let samples = item.previewSamples
 
         return HStack(spacing: Space.sm) {
             // Left pill: resolution + crop offsets

@@ -82,7 +82,76 @@ enum SeedData {
             selectedSampleIndex: 1
         )
 
-        // 2. Variable AR (IMAX 1.90:1 / 1.78:1 mixed with 2.39:1)
+        // 2. Film Transfer Jitter (8px edge drift -> suggests Deep Scan without Variable AR block)
+        let filmURL = URL(fileURLWithPath: "/Movies/Classics/Blade.Runner.1982.35mm.1080p.mkv")
+        let filmInspection = VideoInspection(
+            url: filmURL,
+            fileSize: 31_400_000_000,
+            storedWidth: 1920,
+            storedHeight: 1080,
+            sar: .square,
+            duration: 7020, // 117 min -> 17 Deep Scan intervals
+            codecName: "h264",
+            currentHeader: MatroskaVideoHeader(pixelWidth: 1920, pixelHeight: 1080, displayWidth: 1920, displayHeight: 1080)
+        )
+        let filmSamples = [
+            CropSample(window: SampleWindow(index: 0, percentage: 0.20, startTime: 1399, duration: 10),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: dune20),
+            CropSample(window: SampleWindow(index: 1, percentage: 0.50, startTime: 3505, duration: 10),
+                       detectedRect: CropRect(x: 0, y: 144, width: 1920, height: 792), previewImagePath: dune50),
+            CropSample(window: SampleWindow(index: 2, percentage: 0.80, startTime: 5611, duration: 10),
+                       detectedRect: CropRect(x: 0, y: 140, width: 1920, height: 800), previewImagePath: dune80),
+        ]
+        let filmDetection = CropCalculator.unionAndAnalyze(
+            samples: filmSamples,
+            frameWidth: 1920,
+            frameHeight: 1080,
+            scanMode: .standard
+        )
+        let filmItem = QueueItem(
+            url: filmURL,
+            status: .detected,
+            inspection: filmInspection,
+            detection: filmDetection,
+            selectedSampleIndex: 1
+        )
+
+        // 3. Deep Scanned (90 min -> 15 Deep Scan intervals, 5 representative previews)
+        let deepURL = URL(fileURLWithPath: "/Movies/Classics/Lawrence.1962.Restored.2160p.mkv")
+        let deepInspection = VideoInspection(
+            url: deepURL,
+            fileSize: 54_200_000_000,
+            storedWidth: 3840,
+            storedHeight: 2160,
+            sar: .square,
+            duration: 5400, // 90 min -> 15 intervals
+            codecName: "hevc",
+            currentHeader: MatroskaVideoHeader(pixelWidth: 3840, pixelHeight: 2160, displayWidth: 3840, displayHeight: 2160)
+        )
+        let (deepWindows, _) = CropCalculator.deepScanWindows(duration: 5400, settings: .default)
+        let previewPaths = [dune20, dune50, dune80, arrival50, dune20]
+        var deepSamples = deepWindows.map { win in
+            CropSample(window: win, detectedRect: CropRect(x: 0, y: 216, width: 3840, height: 1728))
+        }
+        let previewIdx = CropCalculator.selectPreviewIndices(samples: deepSamples, maxCount: 5)
+        for (slot, sampleIndex) in previewIdx.enumerated() {
+            deepSamples[sampleIndex].previewImagePath = previewPaths[slot % previewPaths.count]
+        }
+        let deepDetection = CropCalculator.unionAndAnalyze(
+            samples: deepSamples,
+            frameWidth: 3840,
+            frameHeight: 2160,
+            scanMode: .deep
+        )
+        let deepItem = QueueItem(
+            url: deepURL,
+            status: .detected,
+            inspection: deepInspection,
+            detection: deepDetection,
+            selectedSampleIndex: 2
+        )
+
+        // 4. Variable AR (IMAX 1.90:1 / 1.78:1 mixed with 2.39:1)
         let imaxURL = URL(fileURLWithPath: "/Movies/Sci-Fi/Interstellar.2014.IMAX.1080p.mkv")
         let imaxInspection = VideoInspection(
             url: imaxURL,
@@ -195,7 +264,7 @@ enum SeedData {
             status: .error(MKVEditError.readOnlyOrPermissionDenied("Classic.DVD.NTSC.mkv").localizedDescription)
         )
 
-        model.items = [duneItem, imaxItem, arrivalItem, epS1Item, epS2Item, nasItem]
+        model.items = [duneItem, filmItem, deepItem, imaxItem, arrivalItem, epS1Item, epS2Item, nasItem]
         model.selectionID = duneItem.id
     }
 

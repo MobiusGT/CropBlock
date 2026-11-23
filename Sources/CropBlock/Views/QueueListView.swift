@@ -32,9 +32,12 @@ struct QueueListView: View {
 
     @ViewBuilder
     private func rowContextMenu(for item: QueueItem) -> some View {
-        if item.status != .scanning {
+        if item.status != .scanning && !item.isApplying {
             Button("Scan Again", systemImage: "viewfinder") {
                 model.rescanItem(id: item.id)
+            }
+            Button("Deep Scan", systemImage: "scope") {
+                model.deepScanItem(id: item.id)
             }
         }
         if item.canApply {
@@ -62,7 +65,7 @@ private struct QueueRowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+            HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                 Text(item.fileName)
                     .font(.body.weight(.medium))
                     .lineLimit(1)
@@ -70,6 +73,14 @@ private struct QueueRowView: View {
                     .help(item.url.path)
 
                 Spacer(minLength: Space.xs)
+
+                if item.shouldSuggestDeepScan && item.status == .detected {
+                    Image(systemName: "scope")
+                        .font(.caption)
+                        .foregroundStyle(Palette.accentText)
+                        .help("Inconsistent framing detected — Deep Scan recommended")
+                        .accessibilityLabel("Deep Scan recommended")
+                }
 
                 StatusBadge(status: item.status)
             }
@@ -92,6 +103,17 @@ private struct QueueRowView: View {
                     .foregroundStyle(subtitleColor)
                     .lineLimit(1)
                     .truncationMode(.tail)
+
+                if item.isDeepScanned, item.status != .scanning {
+                    Text("·")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Text(deepCompactTag)
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.accentText)
+                        .lineLimit(1)
+                }
             }
         }
         .padding(.vertical, Space.xs)
@@ -99,7 +121,15 @@ private struct QueueRowView: View {
         .accessibilityLabel("\(item.fileName), \(item.status.label), \(subtitleText)")
     }
 
+    private var deepCompactTag: String {
+        guard let detection = item.detection else { return "Deep" }
+        return detection.isFullVideoSinglePass ? "Full Scan" : "\(detection.samples.count)x Deep"
+    }
+
     private var subtitleText: String {
+        if case .scanning = item.status {
+            return item.scanningDetailText
+        }
         if let err = item.status.errorMessage {
             return err
         }

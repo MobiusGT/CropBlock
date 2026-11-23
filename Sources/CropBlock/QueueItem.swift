@@ -53,6 +53,9 @@ struct QueueItem: Identifiable, Hashable {
     var variableARConfirmed: Bool
     var receipt: EditReceipt?
     var isApplying: Bool
+    var activeScanMode: ScanMode?
+    var scanCompletedIntervals: Int
+    var scanTotalIntervals: Int
 
     init(
         id: UUID = UUID(),
@@ -65,7 +68,10 @@ struct QueueItem: Identifiable, Hashable {
         selectedSampleIndex: Int = 0,
         variableARConfirmed: Bool = false,
         receipt: EditReceipt? = nil,
-        isApplying: Bool = false
+        isApplying: Bool = false,
+        activeScanMode: ScanMode? = nil,
+        scanCompletedIntervals: Int = 0,
+        scanTotalIntervals: Int = 0
     ) {
         self.id = id
         self.url = url
@@ -79,6 +85,9 @@ struct QueueItem: Identifiable, Hashable {
         self.variableARConfirmed = variableARConfirmed
         self.receipt = receipt
         self.isApplying = isApplying
+        self.activeScanMode = activeScanMode
+        self.scanCompletedIntervals = scanCompletedIntervals
+        self.scanTotalIntervals = scanTotalIntervals
     }
 
     var fileName: String { url.lastPathComponent }
@@ -90,6 +99,30 @@ struct QueueItem: Identifiable, Hashable {
     }
 
     var isManuallyAdjusted: Bool { manualInsets != nil }
+
+    var isDeepScanned: Bool { detection?.isDeepScanned == true }
+
+    var shouldSuggestDeepScan: Bool {
+        guard status != .scanning, status != .cropped else { return false }
+        return detection?.shouldSuggestDeepScan == true
+    }
+
+    var deepScanBadgeLabel: String? {
+        detection?.deepScanBadgeLabel
+    }
+
+    var scanningDetailText: String {
+        if activeScanMode == .deep {
+            if scanTotalIntervals == 1 {
+                return "Deep scanning full video…"
+            }
+            if scanTotalIntervals > 1 {
+                return "Deep scanning \(scanCompletedIntervals) / \(scanTotalIntervals)…"
+            }
+            return "Deep scanning…"
+        }
+        return "Scanning black bars and extracting preview…"
+    }
 
     var canApply: Bool {
         guard !isApplying, let inspection else { return false }
@@ -131,8 +164,14 @@ struct QueueItem: Identifiable, Hashable {
         return "\(stored) · \(full.formattedAspectRatio)"
     }
 
+    /// Previewable subset (all 3 for standard scan; up to 5 representative frames for Deep Scan).
+    var previewSamples: [CropSample] {
+        detection?.previewableSamples ?? []
+    }
+
     var currentSample: CropSample? {
-        guard let samples = detection?.samples, !samples.isEmpty else { return nil }
+        let samples = previewSamples
+        guard !samples.isEmpty else { return nil }
         let clamped = min(max(0, selectedSampleIndex), samples.count - 1)
         return samples[clamped]
     }

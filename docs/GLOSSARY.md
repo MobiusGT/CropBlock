@@ -35,10 +35,12 @@ Every status badge pairs a consistent label with an SF Symbol (never color alone
 | Term | Means | Not |
 | --- | --- | --- |
 | Add Files… | Open a file panel to add MKV files or folders to the Queue | Import, Load, Browse MKVs |
-| Scan | Inspect a file with `ffprobe`, run multi-timestamp `cropdetect`, and extract sample frames | Analyze, Detect, Probe, Process |
-| Rescan | Run Scan again on a selected file using current Detection settings | Re-analyze, Refresh, Retry |
-| Apply Crop | Write Matroska crop and display-dimension headers in-place with `mkvpropedit` | Save, Commit, Export, Crop Now |
-| Apply All Ready | Apply Crop to every `Detected` (and confirmed `Variable AR`) file in the Queue | Batch Run, Process All, Execute Queue |
+| Scan | Inspect a file with `ffprobe`, run 3-timestamp `cropdetect`, and extract sample frames | Analyze, Detect, Probe, Process |
+| Rescan | Run standard Scan again on a selected file using current Detection settings | Re-analyze, Refresh, Retry |
+| Deep Scan | Run duration-scaled multi-interval `cropdetect` (10 intervals ≤ 25 min, +1 per 15 min past 25 min; full single pass on short clips) across the usable timeline | Full Scan, Thorough Scan, Heavy Scan |
+| Deep Scan All | Run Deep Scan across all queued files that have not yet been Deep Scanned or Cropped | Scan Everything, Batch Deep Scan |
+| Apply Crop | Write Matroska `pixel-crop-*` headers in-place with `mkvpropedit` | Save, Commit, Export, Crop Now |
+| Crop All | Apply Crop to every `Detected` (and confirmed `Variable AR`) file in the Queue | Apply All Ready, Batch Run, Process All |
 | Restore Original | Revert a file's Matroska header fields back to its saved pre-edit state | Undo Crop, Revert File, Strip Crop |
 | Reset Crop Headers | Remove `pixel-crop-*` headers and reset display dimensions when no local Receipt exists | Clear Metadata, Uncrop |
 | Remove from Queue | Remove a file from the Queue without touching the file on disk | Delete, Trash, Clear File |

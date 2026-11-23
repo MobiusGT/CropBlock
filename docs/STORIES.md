@@ -155,19 +155,19 @@ UX:
 - Access: Keyboard Tab & arrow stepping; VoiceOver labels each edge and pixel count
 Status: done
 
-### S-010 Batch Apply All Ready with progress & Variable AR safety skip
-As the user, I click **Apply All Ready** (`⇧⌘↩`) to losslessly crop every `Detected` (and explicitly confirmed `Variable AR`) file in the Queue in parallel while automatically skipping `No Bars`, `Error`, and unconfirmed `Variable AR` files.
+### S-010 Batch Crop All with progress & Variable AR safety skip
+As the user, I click **Crop All** (`⇧⌘↩`) to losslessly crop every `Detected` (and explicitly confirmed `Variable AR`) file in the Queue in parallel while automatically skipping `No Bars`, `Error`, and unconfirmed `Variable AR` files.
 Screens: `detected-light.png`, `detected-dark.png`
 Depends: S-008
 Acceptance:
 - [unit] `BatchApplyPlanner` includes only `Detected` and confirmed `Variable AR` items with non-zero insets, never unconfirmed `Variable AR`, `No Bars`, `Error`, `Pending`, `Scanning`, or already `Cropped`.
-- [snap] Detail toolbar displays `"Apply All Ready"` with ready count cleanly on the 4 pt grid in light & dark mode.
+- [snap] Detail toolbar displays high-contrast paired `"Deep Scan All"` and `"Crop All"` buttons cleanly on the 4 pt grid in light & dark mode.
 - [self] Batch apply processes multiple ready files, skips unconfirmed `Variable AR` and `No Bars`, isolates per-file errors, and records a restore receipt per cropped file.
 UX:
-- Flow: Drop folder of MKVs -> auto-scan completes -> click toolbar `"Apply All Ready (N)"` or press `⇧⌘↩` -> bounded parallel apply updates badges to `Cropped` -> inline banner reports summary (with `"Stop"` button to cancel mid-batch)
-- Surface: Detail toolbar button + Crop menu item (`⇧⌘↩`) + inline progress/banner
-- States: Hidden/disabled when 0 ready; enabled with ready count when >= 1 ready; active shows `"Applying X of Y…"` + `"Stop"`; finished shows calm dismissible banner
-- Words: `"Apply All Ready"`, `"Stop Applying"`, tooltip `"Apply crop headers to all ready files in the queue (⇧⌘↩)"`
+- Flow: Drop folder of MKVs -> auto-scan completes -> click toolbar `"Crop All (N)"` or press `⇧⌘↩` -> bounded parallel apply updates badges to `Cropped` -> auto-dismissing success toast reports summary (with `"Stop"` button to cancel mid-batch)
+- Surface: Detail toolbar high-contrast button pair + Crop menu item (`⇧⌘↩`) + inline progress/toast
+- States: Disabled cleanly when 0 ready; enabled with ready count when >= 1 ready; active shows `"Cropping X of Y…"` + `"Stop"`; finished shows auto-dismissing toast (or persistent error banner on failure)
+- Words: `"Crop All"`, `"Deep Scan All"`, `"Stop"`, tooltip `"Apply crop headers to all ready files in the queue (⇧⌘↩)"`
 - Access: `⇧⌘↩` shortcut; VoiceOver announces ready count and batch completion summary
 Status: done
 

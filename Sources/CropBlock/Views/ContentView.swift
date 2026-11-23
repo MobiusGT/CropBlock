@@ -53,29 +53,8 @@ struct ContentView: View {
             .toolbar {
                 CompatToolbarFlexibleSpacer()
 
-                if model.isBatchApplying {
-                    ToolbarItem {
-                        HStack(spacing: Space.sm) {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text("Applying \(model.batchApplyCompleted) of \(model.batchApplyTotal)…")
-                                .font(.callout)
-                                .monospacedDigit()
-                            Button("Stop", systemImage: "stop.fill") {
-                                model.stopBatchApply()
-                            }
-                            .help("Stop batch applying crops")
-                        }
-                    }
-                    CompatToolbarFixedSpacer()
-                } else if model.readyToApplyCount > 0 {
-                    ToolbarItem {
-                        Button("Apply All Ready (\(model.readyToApplyCount))", systemImage: "crop") {
-                            model.applyAllReady()
-                        }
-                        .labelStyle(.titleAndIcon)
-                        .help("Apply crop headers to all ready files in the queue (⇧⌘↩)")
-                    }
+                if !model.items.isEmpty {
+                    batchToolbarGroup
                     CompatToolbarFixedSpacer()
                 }
 
@@ -116,6 +95,71 @@ struct ContentView: View {
                 .environment(model)
         }
         .noInitialFocus()
+    }
+
+    @ToolbarContentBuilder
+    private var batchToolbarGroup: some ToolbarContent {
+        if model.isBatchApplying {
+            ToolbarItem {
+                HStack(spacing: Space.sm) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Cropping \(model.batchApplyCompleted) of \(model.batchApplyTotal)…")
+                        .font(.callout)
+                        .monospacedDigit()
+                    Button("Stop", systemImage: "stop.fill") {
+                        model.stopBatchApply()
+                    }
+                    .help("Stop Crop All")
+                }
+            }
+        } else if model.isScanning && model.activeBatchScanMode == .deep {
+            ToolbarItem {
+                HStack(spacing: Space.sm) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text(
+                        model.batchScanTotal > 1
+                            ? "Deep Scanning \(model.batchScanCompleted) of \(model.batchScanTotal)…"
+                            : "Deep Scanning…"
+                    )
+                    .font(.callout)
+                    .monospacedDigit()
+                    Button("Stop", systemImage: "stop.fill") {
+                        model.stopScanning()
+                    }
+                    .help("Stop Deep Scan (⌘.)")
+                }
+            }
+        } else {
+            ToolbarItem {
+                HStack(spacing: Space.sm) {
+                    Button {
+                        model.deepScanAll()
+                    } label: {
+                        Label("Deep Scan All", systemImage: "scope")
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .buttonStyle(ToolbarBatchButtonStyle(role: .secondaryContrast))
+                    .disabled(model.deepScanAllCount == 0 || model.isScanning || model.isBatchApplying)
+                    .help("Deep scan all uncropped files across duration-scaled intervals (⌥⇧⌘R)")
+
+                    Button {
+                        model.cropAll()
+                    } label: {
+                        Label(
+                            model.cropAllReadyCount > 0 ? "Crop All (\(model.cropAllReadyCount))" : "Crop All",
+                            systemImage: "crop"
+                        )
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .buttonStyle(ToolbarBatchButtonStyle(role: .primaryAccent))
+                    .disabled(model.cropAllReadyCount == 0 || model.isBatchApplying)
+                    .help("Apply crop headers to all ready files in the queue (⇧⌘↩)")
+                }
+            }
+            .compatSharedBackgroundHidden()
+        }
     }
 
     private var emptyDetailView: some View {

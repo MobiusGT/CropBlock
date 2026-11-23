@@ -212,7 +212,7 @@ struct MKVBackendAndIntegrationTests {
         #expect(originalHeader.displayHeight == 180)
         #expect(originalHeader.displayUnit == 0)
 
-        // 2. Scan with VideoScanner -> verify 320x180 & T=30, B=30 + preview image
+        // 2. Scan with VideoScanner (Standard + Deep single-pass on short clip)
         let scan1 = try await VideoScanner.scan(
             url: mkvURL,
             settings: DetectionSettings(samplePercentages: [0.25, 0.75], sampleDurationSeconds: 1, cropDetectLimit: 24),
@@ -223,6 +223,18 @@ struct MKVBackendAndIntegrationTests {
         #expect(scan1.inspection.storedHeight == 180)
         #expect(scan1.detection.proposedInsets == CropInsets(left: 0, right: 0, top: 30, bottom: 30))
         #expect(scan1.detection.samples.first?.previewImagePath != nil)
+
+        let deepScan = try await VideoScanner.scan(
+            url: mkvURL,
+            settings: DetectionSettings.default,
+            tools: tools,
+            previewCacheDirectory: previewDir,
+            mode: .deep
+        )
+        #expect(deepScan.detection.isDeepScanned)
+        #expect(deepScan.detection.isFullVideoSinglePass)
+        #expect(deepScan.detection.proposedInsets == CropInsets(left: 0, right: 0, top: 30, bottom: 30))
+        #expect(deepScan.detection.deepScanBadgeLabel == "Deep Scanned · Full Video")
 
         // 3. Apply crop losslessly -> pixel-crop-* set, display-* UNTOUCHED
         let backend = MKVHeaderCropBackend()

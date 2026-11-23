@@ -3,10 +3,10 @@
 A lightweight, native macOS SwiftUI desktop app that automatically detects black letterbox and pillarbox bars in MKV files using `ffmpeg` (`cropdetect`) and removes them losslessly in-place by editing Matroska `pixel-crop-*` headers with `mkvpropedit`.
 
 - **Zero re-encoding** — updates only the four `pixel-crop-left/right/top/bottom` header tags on `track:v1` in milliseconds (`display-width`, `display-height`, and `display-unit` are left untouched).
-- **Safe multi-timestamp detection** — samples across the file (default `20%`, `50%`, `80%`, 10 s each) and takes the union bounding box so dark scenes never cause over-cropping.
+- **Safe multi-timestamp detection & Deep Scan** — standard scan samples across `20%`, `50%`, `80%` (10 s each); **Deep Scan** (per-file or **Deep Scan All**) scales intervals by video duration (`10` intervals ≤ 25 min, `+1` per 15 min past 25 min, skipping 5% intro / 8% credit tails, or a full-video pass on short clips) and extracts up to 5 representative preview frames including any outlier scenes.
+- **Smart Deep Scan suggestions** — automatically flags Variable AR (IMAX shifts), subtle film-transfer gate-weave / edge jitter (≥ 4 px), or pure-black standard samples with a 1-click **Run Deep Scan** recommendation.
 - **Codec-accurate re-scanning** — uses `-apply_cropping codec` so H.264/HEVC macroblock padding (e.g., `1088 → 1080`) is handled accurately while ignoring existing container crop flags.
-- **Variable AR (IMAX) protection** — detects when sampled timestamps disagree on active video dimensions, lets you flip between `20% / 50% / 80%` sample preview frames, and requires explicit confirmation before applying.
-- **Visual verification & fine-tuning** — previews SAR-corrected frames with dimmed bars, crisp crop boundaries, live `±2 px` manual offset steppers, and a before-and-after Matroska header diff.
+- **Visual verification, fine-tuning & batch Crop All** — previews SAR-corrected frames with dimmed bars, crisp crop boundaries, live `±2 px` manual offset steppers, a before-and-after Matroska header diff, and 1-click **Crop All** (automatically skipping `No Bars`, `Error`, and unconfirmed `Variable AR` files).
 - **1-Click Undo / Restore** — records original `pixel-crop-*` header states locally (distinguishing absent vs. explicit `0` elements via a pure-Swift EBML `SeekHead` reader) so edits can be reversed cleanly even after restarting.
 - **Native macOS 15+ & macOS 26 Liquid Glass** — built in pure Swift 6 + SwiftUI with Universal Binary (`arm64` + `x86_64`) support.
 

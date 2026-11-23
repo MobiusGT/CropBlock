@@ -28,13 +28,15 @@ Single flat level — no synthetic folder hierarchy:
 | --- | --- | --- | --- |
 | Add Files… | File > Add Files… | `⌘O` | Queue toolbar (`plus`), empty state button |
 | Scan Selected | Queue > Scan Selected | `⌘R` | Detail footer (`Rescan`), row context menu |
+| Deep Scan Selected | Queue > Deep Scan Selected | `⌥⌘R` | Detail footer (`Deep Scan`), row context menu, framing banner |
 | Scan All Pending | Queue > Scan All Pending | `⇧⌘R` | Queue toolbar (`viewfinder`) |
-| Stop Scanning | Queue > Stop Scanning | `⌘.` | Replaces Scan All while active |
+| Deep Scan All | Queue > Deep Scan All | `⌥⇧⌘R` | Detail toolbar high-contrast pill (`scope`) |
+| Stop Scanning | Queue > Stop Scanning | `⌘.` | Replaces Scan/Deep Scan while active |
 | Apply Crop | Crop > Apply Crop | `⌘↩` | Detail footer prominent button, row context menu |
-| Apply All Ready | Crop > Apply All Ready | `⇧⌘↩` | Detail toolbar (M2) |
-| Restore Original | Crop > Restore Original | `⌘Z` / `⌥⌘Z` | Detail footer, row context menu |
+| Crop All | Crop > Crop All | `⇧⌘↩` | Detail toolbar accented pill (`crop`) |
+| Restore Original | Crop > Restore Original | `⌥⌘Z` | Detail footer, row context menu |
 | Toggle Crop Overlay | View > Hide/Show Crop Overlay | `Space` | Preview canvas overlay pill |
-| Next / Previous Sample Frame | View > Sample Frame > 1/2/3 | `⌘1` / `⌘2` / `⌘3` | Preview frame segmented picker |
+| Sample Frame 1–5 | View > Sample Frame > 1–5 | `⌘1`–`⌘5` | Preview frame segmented picker |
 | Remove from Queue | Edit > Remove from Queue | `⌫` | Row context menu |
 | Clear Completed | Queue > Clear Completed | `⌥⌘⌫` | Queue menu |
 | Player Compatibility | Help > Player Compatibility | — | Detail toolbar (`info.circle` popover) |

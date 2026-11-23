@@ -48,11 +48,25 @@ struct CropBlockApp: App {
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(!menu.hasSelection)
 
+                Button("Deep Scan Selected") {
+                    if let id = model.selectionID { model.deepScanItem(id: id) }
+                }
+                .keyboardShortcut("r", modifiers: [.command, .option])
+                .disabled(!menu.canDeepScanSelected)
+
+                Divider()
+
                 Button("Scan All Pending") {
                     model.scanAllPending()
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
                 .disabled(!menu.hasPending || menu.isScanning)
+
+                Button("Deep Scan All") {
+                    model.deepScanAll()
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift, .option])
+                .disabled(menu.deepScanAllCount == 0 || menu.isScanning || menu.isBatchApplying)
 
                 Button("Stop Scanning") {
                     model.stopScanning()
@@ -76,14 +90,14 @@ struct CropBlockApp: App {
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(!menu.canApplySelected)
 
-                Button("Apply All Ready") {
-                    model.applyAllReady()
+                Button("Crop All") {
+                    model.cropAll()
                 }
                 .keyboardShortcut(.return, modifiers: [.command, .shift])
-                .disabled(menu.readyToApplyCount == 0 || menu.isBatchApplying)
+                .disabled(menu.cropAllReadyCount == 0 || menu.isBatchApplying)
 
                 if menu.isBatchApplying {
-                    Button("Stop Batch Apply") {
+                    Button("Stop Crop All") {
                         model.stopBatchApply()
                     }
                 }
@@ -105,7 +119,7 @@ struct CropBlockApp: App {
                 .disabled(!menu.hasSelection)
 
                 Menu("Sample Frame") {
-                    ForEach(0..<3, id: \.self) { idx in
+                    ForEach(0..<5, id: \.self) { idx in
                         Button("Sample \(idx + 1)") {
                             if let id = model.selectionID { model.selectSample(idx, for: id) }
                         }
