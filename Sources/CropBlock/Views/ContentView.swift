@@ -51,6 +51,32 @@ struct ContentView: View {
             .toolbar {
                 CompatToolbarFlexibleSpacer()
 
+                if model.isBatchApplying {
+                    ToolbarItem {
+                        HStack(spacing: Space.sm) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("Applying \(model.batchApplyCompleted) of \(model.batchApplyTotal)…")
+                                .font(.callout)
+                                .monospacedDigit()
+                            Button("Stop", systemImage: "stop.fill") {
+                                model.stopBatchApply()
+                            }
+                            .help("Stop batch applying crops")
+                        }
+                    }
+                    CompatToolbarFixedSpacer()
+                } else if model.readyToApplyCount > 0 {
+                    ToolbarItem {
+                        Button("Apply All Ready (\(model.readyToApplyCount))", systemImage: "crop") {
+                            model.applyAllReady()
+                        }
+                        .labelStyle(.titleAndIcon)
+                        .help("Apply crop headers to all ready files in the queue (⇧⌘↩)")
+                    }
+                    CompatToolbarFixedSpacer()
+                }
+
                 if !model.tools.allAvailable {
                     ToolbarItem {
                         Button("Tool Setup…", systemImage: "wrench.and.screwdriver") {

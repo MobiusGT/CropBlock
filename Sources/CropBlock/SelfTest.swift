@@ -48,10 +48,12 @@ enum SelfTest {
             }
 
             if let imax = model.items.first(where: { $0.status == .variableAR }) {
+                check("Batch ready skips unconfirmed Variable AR (only Dune ready)", model.readyToApplyCount == 1)
                 check("Variable AR item blocks Apply until confirmed", !imax.canApply)
                 model.setVariableARConfirmed(true, for: imax.id)
                 let confirmed = model.items.first { $0.id == imax.id }
                 check("Confirming Variable AR enables Apply", confirmed?.canApply == true)
+                check("Batch ready includes confirmed Variable AR (now 2 ready)", model.readyToApplyCount == 2)
 
                 model.selectSample(0, for: imax.id)
                 check("Sample switcher selects index 0", model.items.first { $0.id == imax.id }?.selectedSampleIndex == 0)

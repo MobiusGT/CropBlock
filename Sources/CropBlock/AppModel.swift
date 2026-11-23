@@ -24,11 +24,15 @@ final class AppModel {
 
     var isScanning = false { didSet { syncMenu() } }
     var activeScanCount = 0
+    var isBatchApplying = false { didSet { syncMenu() } }
+    var batchApplyCompleted = 0
+    var batchApplyTotal = 0
 
     @ObservationIgnored let backend: any CropBackend = MKVHeaderCropBackend()
     @ObservationIgnored let receiptStore: ReceiptStore
     @ObservationIgnored let previewCacheDir: URL
     @ObservationIgnored private var scanTask: Task<Void, Never>?
+    @ObservationIgnored private var batchApplyTask: Task<Void, Never>?
     @ObservationIgnored private var hasCheckedInitialTools = false
 
     private enum DefaultsKey {
@@ -60,6 +64,31 @@ final class AppModel {
     var queueSubtitle: String {
         items.count == 1 ? "1 file" : "\(items.count) files"
     }
+
+    var readyToApplyIDs: [UUID] {
+        let candidates = items.map { item -> BatchCandidate in
+            let kind: BatchEligibilityStatus
+            switch item.status {
+            case .pending: kind = .pending
+            case .scanning: kind = .scanning
+            case .detected: kind = .detected
+            case .noBars: kind = .noBars
+            case .variableAR: kind = .variableAR
+            case .cropped: kind = .cropped
+            case .error: kind = .error
+            }
+            return BatchCandidate(
+                id: item.id,
+                status: kind,
+                hasNonZeroInsets: !item.activeInsets.isZero,
+                variableARConfirmed: item.variableARConfirmed,
+                isApplying: item.isApplying
+            )
+        }
+        return BatchApplyPlanner.eligibleIDs(from: candidates)
+    }
+
+    var readyToApplyCount: Int { readyToApplyIDs.count }
 
     func plan(for item: QueueItem) -> CropApplyPlan? {
         guard let inspection = item.inspection else { return nil }
@@ -392,12 +421,80 @@ final class AppModel {
         }
     }
 
-    func performSingleApply(id: UUID) async {
+    func applyAllReady() {
+        let targetIDs = readyToApplyIDs
+        guard !targetIDs.isEmpty else { return }
+        guard tools.mkvpropeditURL != nil else {
+            showsToolSetupSheet = true
+            return
+        }
+
+        batchApplyTask?.cancel()
+        isBatchApplying = true
+        batchApplyCompleted = 0
+        batchApplyTotal = targetIDs.count
+        bannerMessage = nil
+
+        let maxConcurrency = 2
+        batchApplyTask = Task { [weak self] in
+            guard let self else { return }
+            var succeeded = 0
+            var failed = 0
+
+            await withTaskGroup(of: Bool.self) { group in
+                var iterator = targetIDs.makeIterator()
+                var running = 0
+
+                @MainActor
+                func enqueueNext() {
+                    while running < maxConcurrency, let nextID = iterator.next() {
+                        running += 1
+                        group.addTask { [weak self] in
+                            guard let self else { return false }
+                            return await self.performSingleApply(id: nextID)
+                        }
+                    }
+                }
+
+                enqueueNext()
+                for await ok in group {
+                    running = max(0, running - 1)
+                    if ok { succeeded += 1 } else { failed += 1 }
+                    self.batchApplyCompleted = succeeded + failed
+                    if Task.isCancelled {
+                        group.cancelAll()
+                        break
+                    }
+                    enqueueNext()
+                }
+            }
+
+            let cancelled = Task.isCancelled
+            self.isBatchApplying = false
+            self.batchApplyTotal = 0
+            self.batchApplyCompleted = 0
+            if cancelled {
+                self.bannerMessage = "Stopped batch apply after \(succeeded) \(succeeded == 1 ? "file" : "files")."
+            } else if failed > 0 {
+                self.bannerMessage = "Applied crop to \(succeeded) \(succeeded == 1 ? "file" : "files"); \(failed) failed—select error rows for details."
+            } else if succeeded > 0 {
+                self.bannerMessage = "Applied crop to \(succeeded) \(succeeded == 1 ? "file" : "files")."
+            }
+        }
+    }
+
+    func stopBatchApply() {
+        batchApplyTask?.cancel()
+        batchApplyTask = nil
+    }
+
+    @discardableResult
+    func performSingleApply(id: UUID) async -> Bool {
         guard let item = items.first(where: { $0.id == id }),
               item.canApply,
               let inspection = item.inspection,
               let plan = plan(for: item) else {
-            return
+            return false
         }
 
         updateItem(id: id) { $0.isApplying = true }
@@ -422,11 +519,13 @@ final class AppModel {
                 item.inspection?.currentHeader = refreshedHeader
                 item.status = .cropped
             }
+            return true
         } catch {
             updateItem(id: id) { item in
                 item.isApplying = false
                 item.status = .error(error.localizedDescription)
             }
+            return false
         }
     }
 

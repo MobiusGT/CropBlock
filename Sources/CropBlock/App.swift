@@ -76,6 +76,20 @@ struct CropBlockApp: App {
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(!menu.canApplySelected)
 
+                Button("Apply All Ready") {
+                    model.applyAllReady()
+                }
+                .keyboardShortcut(.return, modifiers: [.command, .shift])
+                .disabled(menu.readyToApplyCount == 0 || menu.isBatchApplying)
+
+                if menu.isBatchApplying {
+                    Button("Stop Batch Apply") {
+                        model.stopBatchApply()
+                    }
+                }
+
+                Divider()
+
                 Button(menu.restoreTitle) {
                     if let id = model.selectionID { model.restoreOriginal(for: id) }
                 }

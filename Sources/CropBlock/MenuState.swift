@@ -42,6 +42,8 @@ final class MenuState: ObservableObject {
     @Published var canApplySelected = false
     @Published var canRestoreSelected = false
     @Published var restoreTitle = "Restore Original"
+    @Published var readyToApplyCount = 0
+    @Published var isBatchApplying = false
     @Published var hasCompleted = false
     @Published var showsCropOverlay = true
     @Published var sampleCount = 0
@@ -54,6 +56,8 @@ final class MenuState: ObservableObject {
         canApplySelected = sel?.canApply ?? false
         canRestoreSelected = sel?.canRestore ?? false
         restoreTitle = sel?.restoreButtonTitle ?? "Restore Original"
+        readyToApplyCount = model.readyToApplyCount
+        isBatchApplying = model.isBatchApplying
         hasCompleted = model.items.contains { $0.status == .cropped || $0.status == .noBars }
         showsCropOverlay = model.showsCropOverlay
         sampleCount = sel?.detection?.samples.count ?? 0

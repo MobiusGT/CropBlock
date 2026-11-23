@@ -157,13 +157,19 @@ Status: done
 
 ### S-010 Batch Apply All Ready with progress & Variable AR safety skip
 As the user, I click **Apply All Ready** (`⇧⌘↩`) to losslessly crop every `Detected` (and explicitly confirmed `Variable AR`) file in the Queue in parallel while automatically skipping `No Bars`, `Error`, and unconfirmed `Variable AR` files.
-Screens: `cropped-light.png`
+Screens: `detected-light.png`, `detected-dark.png`
 Depends: S-008
 Acceptance:
-- [unit] Batch selector includes only `Detected` and confirmed `Variable AR` items, never unconfirmed `Variable AR` or `No Bars`.
-- [snap] Detail toolbar displays `"Apply All Ready"` with ready count (and inline progress / Cancel while running) in light & dark mode.
-- [self] Batch apply processes multiple ready files, skips unconfirmed `Variable AR`, and records a restore receipt per file.
-Status: todo
+- [unit] `BatchApplyPlanner` includes only `Detected` and confirmed `Variable AR` items with non-zero insets, never unconfirmed `Variable AR`, `No Bars`, `Error`, `Pending`, `Scanning`, or already `Cropped`.
+- [snap] Detail toolbar displays `"Apply All Ready"` with ready count cleanly on the 4 pt grid in light & dark mode.
+- [self] Batch apply processes multiple ready files, skips unconfirmed `Variable AR` and `No Bars`, isolates per-file errors, and records a restore receipt per cropped file.
+UX:
+- Flow: Drop folder of MKVs -> auto-scan completes -> click toolbar `"Apply All Ready (N)"` or press `⇧⌘↩` -> bounded parallel apply updates badges to `Cropped` -> inline banner reports summary (with `"Stop"` button to cancel mid-batch)
+- Surface: Detail toolbar button + Crop menu item (`⇧⌘↩`) + inline progress/banner
+- States: Hidden/disabled when 0 ready; enabled with ready count when >= 1 ready; active shows `"Applying X of Y…"` + `"Stop"`; finished shows calm dismissible banner
+- Words: `"Apply All Ready"`, `"Stop Applying"`, tooltip `"Apply crop headers to all ready files in the queue (⇧⌘↩)"`
+- Access: `⇧⌘↩` shortcut; VoiceOver announces ready count and batch completion summary
+Status: done
 
 ### S-011 Native Settings window (General, Detection, Tools, Appearance)
 As the user, I open Settings (`⌘,`) to configure sampling timestamps (default `20%, 50%, 80%`), sample duration (`10 s`), `cropdetect` limit (`24`), scan concurrency, auto-scan on drop, custom tool binary paths with Browse…, and app accent color.
