@@ -41,11 +41,13 @@ struct ContentView: View {
                 }
             }
             .overlay(alignment: .top) {
-                if let message = model.bannerMessage {
-                    bannerView(message: message)
+                if let banner = model.banner {
+                    bannerView(banner: banner)
                         .padding(Space.md)
+                        .transition(.opacity)
                 }
             }
+            .animation(Motion.ui(reduceMotion: reduceMotion), value: model.banner?.id)
             .navigationTitle("Queue")
             .navigationSubtitle(model.queueSubtitle)
             .toolbar {
@@ -156,24 +158,40 @@ struct ContentView: View {
         .gridArea("detail", inset: Space.margin)
     }
 
-    private func bannerView(message: String) -> some View {
-        HStack(spacing: Space.sm) {
-            Image(systemName: "info.circle")
-                .foregroundStyle(.secondary)
-            Text(message)
+    private func bannerView(banner: AppBanner) -> some View {
+        let iconColor: Color = switch banner.kind {
+        case .success: Surface.success
+        case .info: .secondary
+        case .error: Surface.danger
+        }
+
+        return HStack(spacing: Space.sm) {
+            Image(systemName: banner.kind.symbol)
+                .foregroundStyle(iconColor)
+                .accessibilityHidden(true)
+            Text(banner.message)
                 .font(.callout)
+                .lineLimit(2)
             Spacer(minLength: Space.sm)
             Button("Dismiss", systemImage: "xmark") {
-                model.bannerMessage = nil
+                model.dismissBanner()
             }
             .buttonStyle(.plain)
             .labelStyle(.iconOnly)
-            .help("Dismiss message")
+            .foregroundStyle(.secondary)
+            .help("Dismiss notification")
         }
         .padding(.horizontal, Space.md)
         .padding(.vertical, Space.sm)
         .floatingGlassPill()
-        .frame(maxWidth: 480)
+        .frame(maxWidth: 520)
+        .contentShape(Capsule())
+        .onTapGesture {
+            model.dismissBanner()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Click to dismiss")
     }
 
     private func handleDroppedProviders(_ providers: [NSItemProvider]) -> Bool {

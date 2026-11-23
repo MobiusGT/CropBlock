@@ -23,7 +23,7 @@ final class AppModel {
     var showsCompatibilityPopover = false
     var showsCropOverlay = true { didSet { syncMenu() } }
     var isDropTargeted = false
-    var bannerMessage: String?
+    var banner: AppBanner?
 
     var isScanning = false { didSet { syncMenu() } }
     var activeScanCount = 0
@@ -36,6 +36,7 @@ final class AppModel {
     @ObservationIgnored let previewCacheDir: URL
     @ObservationIgnored var scanTask: Task<Void, Never>?
     @ObservationIgnored var batchApplyTask: Task<Void, Never>?
+    @ObservationIgnored private var bannerDismissTask: Task<Void, Never>?
     @ObservationIgnored private var hasCheckedInitialTools = false
 
     private enum DefaultsKey {
@@ -214,12 +215,12 @@ final class AppModel {
 
         if discovery.urls.isEmpty {
             if discovery.skippedNonMKVCount > 0 {
-                bannerMessage = "No MKV files found in the dropped items."
+                showBanner("No MKV files found in the dropped items.", kind: .info)
             }
             return
         }
 
-        bannerMessage = nil
+        dismissBanner()
         var newlyAddedIDs: [UUID] = []
         for url in discovery.urls {
             let item = QueueItem(url: url)
@@ -324,6 +325,46 @@ final class AppModel {
 
     func cleanupPreviewCache() {
         try? FileManager.default.removeItem(at: previewCacheDir)
+    }
+
+    // MARK: - Toast / Banner Notifications
+
+    /// Displays a confirmation toast or persistent error banner.
+    /// Success and info notices auto-dismiss after 3.5 seconds (resetting cleanly if replaced);
+    /// error banners remain visible until dismissed by the user.
+    func showBanner(
+        _ message: String,
+        kind: AppBanner.Kind,
+        autoDismissAfter overrideDuration: Duration? = nil
+    ) {
+        bannerDismissTask?.cancel()
+        bannerDismissTask = nil
+
+        let next = AppBanner(message: message, kind: kind)
+        banner = next
+
+        let timeout: Duration? = (kind == .error) ? nil : (overrideDuration ?? kind.defaultAutoDismiss)
+        guard let timeout else { return }
+
+        let targetID = next.id
+        bannerDismissTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: timeout)
+                guard !Task.isCancelled else { return }
+                if self?.banner?.id == targetID {
+                    self?.banner = nil
+                    self?.bannerDismissTask = nil
+                }
+            } catch {
+                // Cancelled by a newer banner or manual dismissal.
+            }
+        }
+    }
+
+    func dismissBanner() {
+        bannerDismissTask?.cancel()
+        bannerDismissTask = nil
+        banner = nil
     }
 
     // MARK: - Helpers

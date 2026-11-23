@@ -95,3 +95,12 @@ Optional release flags:
 - **`Sources/CropBlockKit/`** — Pure-Swift, SwiftUI-free core library (`CropCalculator`, `MatroskaHeaderReader` with `SeekHead` EOF support, `ToolResolver`, `ProcessRunner`, `CropDetectRunner`, `FrameExtractor`, `MKVFileDiscovery`, `CropBackend` + `MKVHeaderCropBackend`, `BatchApplyPlanner`, `ReceiptStore`).
 - **`Sources/CropBlock/`** — Native macOS SwiftUI app (`NavigationSplitView` queue & detail workspace, SAR-corrected preview canvas, manual offset steppers, 4-tab Settings, Tool Setup sheet, Player Compatibility popover).
 - **`Tests/CropBlockKitTests/`** — Swift Testing unit and live `ffmpeg`/`mkvpropedit` round-trip tests.
+
+---
+
+## License
+
+Copyright © 2026 MobiusGT.
+
+Crop Block is free software licensed under the **GNU General Public License v3.0 (`GPL-3.0`)**. See [LICENSE](LICENSE) for the full license text.
+

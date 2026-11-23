@@ -147,8 +147,14 @@ extension AppModel {
             showsToolSetupSheet = true
             return
         }
+        let fileName = item.fileName
         Task {
-            await performSingleApply(id: id)
+            let ok = await performSingleApply(id: id)
+            if ok {
+                showBanner("Crop applied to \(fileName).", kind: .success)
+            } else if let err = items.first(where: { $0.id == id })?.status.errorMessage {
+                showBanner(err, kind: .error)
+            }
         }
     }
 
@@ -164,7 +170,7 @@ extension AppModel {
         isBatchApplying = true
         batchApplyCompleted = 0
         batchApplyTotal = targetIDs.count
-        bannerMessage = nil
+        dismissBanner()
 
         let maxConcurrency = 2
         batchApplyTask = Task { [weak self] in
@@ -205,11 +211,20 @@ extension AppModel {
             self.batchApplyTotal = 0
             self.batchApplyCompleted = 0
             if cancelled {
-                self.bannerMessage = "Stopped batch apply after \(succeeded) \(succeeded == 1 ? "file" : "files")."
+                self.showBanner(
+                    "Stopped batch apply after \(succeeded) \(succeeded == 1 ? "file" : "files").",
+                    kind: .info
+                )
             } else if failed > 0 {
-                self.bannerMessage = "Applied crop to \(succeeded) \(succeeded == 1 ? "file" : "files"); \(failed) failed—select error rows for details."
+                self.showBanner(
+                    "Applied crop to \(succeeded) \(succeeded == 1 ? "file" : "files"); \(failed) failed—select error rows for details.",
+                    kind: .error
+                )
             } else if succeeded > 0 {
-                self.bannerMessage = "Applied crop to \(succeeded) \(succeeded == 1 ? "file" : "files")."
+                self.showBanner(
+                    "Crops successfully applied to \(succeeded) \(succeeded == 1 ? "file" : "files").",
+                    kind: .success
+                )
             }
         }
     }
@@ -305,11 +320,13 @@ extension AppModel {
                         item.status = .pending
                     }
                 }
+                showBanner("Restored original headers for \(targetURL.lastPathComponent).", kind: .success)
             } catch {
                 updateItem(id: id) { item in
                     item.isApplying = false
                     item.status = .error(error.localizedDescription)
                 }
+                showBanner(error.localizedDescription, kind: .error)
             }
         }
     }

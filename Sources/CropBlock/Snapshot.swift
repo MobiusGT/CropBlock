@@ -89,7 +89,7 @@ enum Snapshot {
         model.showsToolSetupSheet = false
         model.showsCompatibilityPopover = false
         model.showsCropOverlay = true
-        model.bannerMessage = nil
+        model.dismissBanner()
         model.tools = realTools
 
         switch page {

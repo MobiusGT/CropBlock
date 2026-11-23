@@ -36,6 +36,39 @@ enum SnapshotPage: String, CaseIterable {
     case compatibility
 }
 
+struct AppBanner: Identifiable, Equatable {
+    enum Kind: Equatable {
+        case success
+        case info
+        case error
+
+        var defaultAutoDismiss: Duration? {
+            switch self {
+            case .success, .info: .milliseconds(3500)
+            case .error: nil
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .success: "checkmark.circle.fill"
+            case .info: "info.circle.fill"
+            case .error: "exclamationmark.triangle.fill"
+            }
+        }
+    }
+
+    let id: UUID
+    let message: String
+    let kind: Kind
+
+    init(id: UUID = UUID(), message: String, kind: Kind) {
+        self.id = id
+        self.message = message
+        self.kind = kind
+    }
+}
+
 /// Mirrors `@Observable` AppModel state into an `ObservableObject` so SwiftUI menu bar commands
 /// enable and disable reliably on macOS.
 @MainActor

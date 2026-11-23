@@ -28,6 +28,7 @@ enum SelfTest {
                 "gearshape", "paintbrush", "viewfinder", "stop.fill", "arrow.uturn.backward",
                 "folder", "minus.circle", "eye", "eye.slash", "aspectratio", "arrow.right",
                 "wrench.and.screwdriver", "arrow.clockwise", "doc.on.doc", "play.rectangle",
+                "info.circle.fill", "xmark",
             ]
             for name in symbols {
                 check("SF Symbol '\(name)' exists", NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil)
@@ -74,7 +75,27 @@ enum SelfTest {
             model.resetDetectionSettings()
             check("Reset restores default detection settings", model.detectionSettings == .default)
 
-            // 5. Menu bar audit (verify required menus and commands exist)
+            // 5. Auto-dismiss toast timer, reset on replacement, early dismiss, and persistent error check
+            check("Success toast defaults to 3.5s auto-dismiss", AppBanner.Kind.success.defaultAutoDismiss == .milliseconds(3500))
+            check("Error banner has no auto-dismiss", AppBanner.Kind.error.defaultAutoDismiss == nil)
+
+            model.showBanner("First toast", kind: .success, autoDismissAfter: .milliseconds(160))
+            check("Success toast appears immediately", model.banner?.message == "First toast")
+            try? await Task.sleep(for: .milliseconds(100))
+            // Replace before first timer fires -> must cancel first timer and start fresh 180ms countdown
+            model.showBanner("Second toast", kind: .success, autoDismissAfter: .milliseconds(180))
+            try? await Task.sleep(for: .milliseconds(100))
+            check("Replaced toast is NOT dismissed prematurely by cancelled first timer", model.banner?.message == "Second toast")
+            try? await Task.sleep(for: .milliseconds(140))
+            check("Replaced toast auto-dismisses cleanly after full reset duration", model.banner == nil)
+
+            model.showBanner("Persistent failure", kind: .error, autoDismissAfter: .milliseconds(60))
+            try? await Task.sleep(for: .milliseconds(120))
+            check("Error banner remains persistent past timeout", model.banner?.message == "Persistent failure")
+            model.dismissBanner()
+            check("Manual dismiss clears error banner immediately", model.banner == nil)
+
+            // 6. Menu bar audit (verify required menus and commands exist)
             let menuTitles = NSApp.mainMenu?.items.map(\.title) ?? []
             check("Main menu has Queue menu", menuTitles.contains("Queue"))
             check("Main menu has Crop menu", menuTitles.contains("Crop"))
